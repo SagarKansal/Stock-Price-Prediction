@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Clicker Madness</title>
+  <style>
+    /* Basic reset */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      background-color: #282c34;
+      color: #ffffff;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    h1 {
+      margin-bottom: 1rem;
+      font-size: 2.5rem;
+      text-align: center;
+    }
+
+    #score {
+      font-size: 4rem;
+      margin: 1rem 0;
+    }
+
+    .btn {
+      padding: 1rem 2rem;
+      font-size: 1.25rem;
+      border: none;
+      border-radius: 0.5rem;
+      cursor: pointer;
+      transition: transform 0.1s ease;
+    }
+
+    .btn:active {
+      transform: scale(0.97);
+    }
+
+    #click-btn {
+      background-color: #61dafb;
+      color: #000;
+      margin-bottom: 1rem;
+    }
+
+    #upgrade-btn {
+      background-color: #ffa500;
+      color: #000;
+    }
+
+    #reset-btn {
+      background-color: #ff5555;
+      color: #fff;
+      margin-top: 1.5rem;
+      font-size: 0.9rem;
+      padding: 0.5rem 1rem;
+    }
+  </style>
+</head>
+<body>
+  <h1>Clicker Madness</h1>
+  <div id="score">0</div>
+  <button id="click-btn" class="btn">Click!</button>
+  <button id="upgrade-btn" class="btn">Buy Auto-Clicker (Cost: 20)</button>
+  <button id="reset-btn" class="btn">Reset Game</button>
+
+  <script>
+    // Load saved state (if any)
+    let score = Number(localStorage.getItem('cm_score')) || 0;
+    let autoClickers = Number(localStorage.getItem('cm_autoClickers')) || 0;
+    let upgradeCost = Number(localStorage.getItem('cm_upgradeCost')) || 20;
+
+    const scoreEl = document.getElementById('score');
+    const clickBtn = document.getElementById('click-btn');
+    const upgradeBtn = document.getElementById('upgrade-btn');
+    const resetBtn = document.getElementById('reset-btn');
+
+    function updateUI() {
+      scoreEl.textContent = score.toLocaleString();
+      upgradeBtn.textContent = `Buy Auto-Clicker (Cost: ${upgradeCost.toLocaleString()})`;
+    }
+
+    function save() {
+      localStorage.setItem('cm_score', score);
+      localStorage.setItem('cm_autoClickers', autoClickers);
+      localStorage.setItem('cm_upgradeCost', upgradeCost);
+    }
+
+    clickBtn.addEventListener('click', () => {
+      score++;
+      updateUI();
+      save();
+    });
+
+    upgradeBtn.addEventListener('click', () => {
+      if (score >= upgradeCost) {
+        score -= upgradeCost;
+        autoClickers++;
+        // Increase cost exponentially to keep the game balanced
+        upgradeCost = Math.round(upgradeCost * 1.6);
+        updateUI();
+        save();
+      }
+    });
+
+    resetBtn.addEventListener('click', () => {
+      if (confirm('Are you sure you want to reset the game?')) {
+        score = 0;
+        autoClickers = 0;
+        upgradeCost = 20;
+        updateUI();
+        save();
+      }
+    });
+
+    // Generate points automatically every second based on number of auto-clickers
+    setInterval(() => {
+      if (autoClickers > 0) {
+        score += autoClickers;
+        updateUI();
+        save();
+      }
+    }, 1000);
+
+    // Initial UI update
+    updateUI();
+  </script>
+</body>
+</html>
