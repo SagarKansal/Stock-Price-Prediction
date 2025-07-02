@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Color Dash - Simple Addictive Game</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Arial', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+        
+        .game-container {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        canvas {
+            border: 3px solid #fff;
+            border-radius: 10px;
+            background: #000;
+            display: block;
+        }
+        
+        .ui {
+            color: white;
+            text-align: center;
+            margin-bottom: 15px;
+        }
+        
+        .score {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        
+        .controls {
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+        
+        .game-over {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            display: none;
+        }
+        
+        .restart-btn {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 18px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-top: 15px;
+            transition: background 0.3s;
+        }
+        
+        .restart-btn:hover {
+            background: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="ui">
+            <div class="score">Score: <span id="score">0</span></div>
+            <div class="controls">
+                Use ARROW KEYS to move | Press R, G, B, Y to change color
+            </div>
+        </div>
+        <canvas id="gameCanvas" width="600" height="400"></canvas>
+        
+        <div class="game-over" id="gameOver">
+            <h2>Game Over!</h2>
+            <div>Final Score: <span id="finalScore">0</span></div>
+            <button class="restart-btn" onclick="restartGame()">Play Again</button>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreElement = document.getElementById('score');
+        const gameOverElement = document.getElementById('gameOver');
+        const finalScoreElement = document.getElementById('finalScore');
+
+        // Game state
+        let gameRunning = true;
+        let score = 0;
+        let gameSpeed = 1;
+        let lastTime = 0;
+
+        // Player object
+        const player = {
+            x: canvas.width / 2,
+            y: canvas.height - 50,
+            radius: 15,
+            color: 'red',
+            speed: 5
+        };
+
+        // Colors available
+        const colors = ['red', 'green', 'blue', 'yellow'];
+        const colorKeys = {
+            'KeyR': 'red',
+            'KeyG': 'green', 
+            'KeyB': 'blue',
+            'KeyY': 'yellow'
+        };
+
+        // Obstacles array
+        let obstacles = [];
+
+        // Input handling
+        const keys = {};
+        document.addEventListener('keydown', (e) => {
+            keys[e.code] = true;
+            
+            // Change player color
+            if (colorKeys[e.code]) {
+                player.color = colorKeys[e.code];
+            }
+        });
+
+        document.addEventListener('keyup', (e) => {
+            keys[e.code] = false;
+        });
+
+        // Obstacle class
+        class Obstacle {
+            constructor() {
+                this.width = 80;
+                this.height = 60;
+                this.x = Math.random() * (canvas.width - this.width);
+                this.y = -this.height;
+                this.color = colors[Math.floor(Math.random() * colors.length)];
+                this.speed = 2 + gameSpeed * 0.5;
+                this.gapSize = 40; // Size of the gap the player can pass through
+            }
+
+            update() {
+                this.y += this.speed;
+            }
+
+            draw() {
+                // Draw obstacle with a gap in the middle
+                ctx.fillStyle = this.color;
+                
+                // Left part
+                ctx.fillRect(this.x, this.y, (this.width - this.gapSize) / 2, this.height);
+                
+                // Right part
+                ctx.fillRect(this.x + (this.width + this.gapSize) / 2, this.y, (this.width - this.gapSize) / 2, this.height);
+                
+                // Add some glow effect
+                ctx.shadowColor = this.color;
+                ctx.shadowBlur = 10;
+                ctx.fillRect(this.x, this.y, (this.width - this.gapSize) / 2, this.height);
+                ctx.fillRect(this.x + (this.width + this.gapSize) / 2, this.y, (this.width - this.gapSize) / 2, this.height);
+                ctx.shadowBlur = 0;
+            }
+
+            checkCollision() {
+                const gapStart = this.x + (this.width - this.gapSize) / 2;
+                const gapEnd = this.x + (this.width + this.gapSize) / 2;
+                
+                // Check if player is in the obstacle's Y range
+                if (player.y - player.radius < this.y + this.height && 
+                    player.y + player.radius > this.y) {
+                    
+                    // Check if player is in the gap
+                    if (player.x + player.radius > gapStart && player.x - player.radius < gapEnd) {
+                        // Player is in the gap - check color match
+                        if (player.color !== this.color) {
+                            return true; // Collision (wrong color)
+                        }
+                    } else {
+                        // Player hit the solid part
+                        return true;
+                    }
+                }
+                return false;
+            }
+        }
+
+        function createObstacle() {
+            obstacles.push(new Obstacle());
+        }
+
+        function updatePlayer() {
+            // Handle movement
+            if (keys['ArrowLeft'] && player.x - player.radius > 0) {
+                player.x -= player.speed;
+            }
+            if (keys['ArrowRight'] && player.x + player.radius < canvas.width) {
+                player.x += player.speed;
+            }
+            if (keys['ArrowUp'] && player.y - player.radius > 0) {
+                player.y -= player.speed;
+            }
+            if (keys['ArrowDown'] && player.y + player.radius < canvas.height) {
+                player.y += player.speed;
+            }
+        }
+
+        function updateObstacles() {
+            for (let i = obstacles.length - 1; i >= 0; i--) {
+                obstacles[i].update();
+                
+                // Check collision
+                if (obstacles[i].checkCollision()) {
+                    gameOver();
+                    return;
+                }
+                
+                // Remove obstacles that are off screen
+                if (obstacles[i].y > canvas.height) {
+                    obstacles.splice(i, 1);
+                    score += 10;
+                    scoreElement.textContent = score;
+                }
+            }
+        }
+
+        function drawPlayer() {
+            ctx.fillStyle = player.color;
+            ctx.shadowColor = player.color;
+            ctx.shadowBlur = 15;
+            ctx.beginPath();
+            ctx.arc(player.x, player.y, player.radius, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+            
+            // Add a white center
+            ctx.fillStyle = 'white';
+            ctx.beginPath();
+            ctx.arc(player.x, player.y, player.radius * 0.4, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        function gameLoop(currentTime) {
+            if (!gameRunning) return;
+            
+            const deltaTime = currentTime - lastTime;
+            lastTime = currentTime;
+            
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Update game speed
+            gameSpeed += 0.001;
+            
+            // Create obstacles
+            if (Math.random() < 0.01 + gameSpeed * 0.002) {
+                createObstacle();
+            }
+            
+            // Update game objects
+            updatePlayer();
+            updateObstacles();
+            
+            // Draw everything
+            drawPlayer();
+            obstacles.forEach(obstacle => obstacle.draw());
+            
+            // Continue game loop
+            requestAnimationFrame(gameLoop);
+        }
+
+        function gameOver() {
+            gameRunning = false;
+            finalScoreElement.textContent = score;
+            gameOverElement.style.display = 'block';
+        }
+
+        function restartGame() {
+            gameRunning = true;
+            score = 0;
+            gameSpeed = 1;
+            obstacles = [];
+            player.x = canvas.width / 2;
+            player.y = canvas.height - 50;
+            player.color = 'red';
+            scoreElement.textContent = score;
+            gameOverElement.style.display = 'none';
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Start the game
+        requestAnimationFrame(gameLoop);
+    </script>
+</body>
+</html>
