@@ -38,3 +38,10 @@ The dataset used contains data for TataMotors (Symbol: TATAMOTORS) from 16 July 
 
 - [Mohammed Gaiban Khan](https://github.com/Gaiban-Khan/)
 - Kaustubh Upadhayaya
+
+
+## Farmer Engagement Game
+
+A lightweight offline browser game for village visits is available at `farmer-engagement-game/index.html`.
+It helps staff explain product importance through short crop-decision rounds and instant learning feedback.
+
