@@ -54,3 +54,21 @@ It helps staff explain product importance through short crop-decision rounds and
 4. Continue through all 6 rounds using **Next Round**.
 5. At the end, discuss the score, trust level, and final tips with the group.
 
+
+### Run the game on your device
+
+You can run the game in two easy ways:
+
+**Option 1 (fastest): open file directly**
+1. Go to the project folder.
+2. Open `farmer-engagement-game/index.html` in your browser.
+
+**Option 2 (recommended): run local server**
+1. In terminal, go to project root.
+2. Run: `./run-farmer-game.sh`
+3. Open: `http://localhost:8080/farmer-engagement-game/index.html`
+
+Use a different port if needed:
+- `./run-farmer-game.sh 9000`
+- Then open: `http://localhost:9000/farmer-engagement-game/index.html`
+
