@@ -45,3 +45,12 @@ The dataset used contains data for TataMotors (Symbol: TATAMOTORS) from 16 July 
 A lightweight offline browser game for village visits is available at `farmer-engagement-game/index.html`.
 It helps staff explain product importance through short crop-decision rounds and instant learning feedback.
 
+
+### How to Play
+
+1. Open `farmer-engagement-game/index.html` on a laptop/tablet browser (works offline).
+2. Read each scenario aloud and ask farmers to choose one option as a group.
+3. Click the selected option to reveal instant feedback and a practical learning point.
+4. Continue through all 6 rounds using **Next Round**.
+5. At the end, discuss the score, trust level, and final tips with the group.
+
