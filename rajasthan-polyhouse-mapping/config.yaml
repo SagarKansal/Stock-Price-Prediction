@@ -1,0 +1,41 @@
+# Pilot-run configuration. Everything under `districts:` maps to a file in
+# data/boundaries/ produced by src/stage0_boundaries.py.
+
+gee:
+  project: "REPLACE_WITH_YOUR_GEE_CLOUD_PROJECT_ID"   # see README "Google Earth Engine setup"
+  sentinel2_collection: "COPERNICUS/S2_SR_HARMONIZED"
+  date_range: ["2025-11-01", "2026-02-28"]              # Nov-Feb: lowest cloud cover over Rajasthan
+  max_cloud_pct: 20
+
+pilot:
+  districts: ["jaipur", "sikar"]
+  boundary_dir: "data/boundaries"
+
+stage1_coarse_screening:
+  # Composite index thresholds (0-1 scale after normalization). Tune against
+  # a handful of known polyhouse clusters before trusting statewide.
+  brightness_percentile_threshold: 90     # candidate pixels must be in the brightest decile
+  ndvi_max_threshold: 0.25                # suppressed vegetation signal under cover
+  min_cluster_pixels: 4                   # at 10m Sentinel-2 resolution, ~400 sqm minimum
+  exclude:
+    urban_buffer_m: 200
+    thar_desert_ndvi_min: -0.05           # exclude near-bare desert (avoids false positives on sand)
+
+stage2_hires_verification:
+  tile_provider: "esri_world_imagery"
+  tile_zoom: 19
+  cache_dir: "data/outputs/tile_cache"
+  requests_per_second: 2                  # politeness limit for ArcGIS REST endpoint
+  structure_min_width_m: 6
+  structure_max_width_m: 120
+  vision_model:
+    enabled: false                        # flip on once ANTHROPIC_API_KEY is set and few-shot examples exist
+    examples_dir: "data/vision_examples"
+    model: "claude-sonnet-5"
+
+stage4_validation:
+  sample_fraction: 0.08
+
+output:
+  dir: "data/outputs"
+  formats: ["csv", "geojson", "kml"]

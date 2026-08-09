@@ -1,0 +1,5 @@
+.venv/
+__pycache__/
+*.pyc
+data/outputs/
+data/boundaries/_india_districts_raw.geojson

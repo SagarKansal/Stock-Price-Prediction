@@ -1,0 +1,28 @@
+# Core geospatial pipeline dependencies for the Rajasthan protected-cultivation
+# mapping project. Python 3.11.
+#
+# earthengine-api / geemap are only needed for Stage 1 (coarse Sentinel-2
+# screening) and require a registered Google Earth Engine Cloud project +
+# authenticated credentials before they will do anything useful — see README.
+
+geopandas>=0.14
+shapely>=2.0
+rasterio>=1.3
+folium>=0.15
+requests>=2.31
+opencv-python-headless>=4.9
+scikit-image>=0.22
+pandas>=2.1
+numpy>=1.26
+pyyaml>=6.0
+
+# Stage 1 (Google Earth Engine) — needs a GEE-registered Cloud project + auth
+earthengine-api>=0.1.400
+geemap>=0.32
+
+# Stage 2 vision-model classification (optional, needs an Anthropic API key)
+anthropic>=0.40
+Pillow>=10.0
+
+# Stage 5 output formats
+simplekml>=1.3
