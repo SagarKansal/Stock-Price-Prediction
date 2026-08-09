@@ -34,10 +34,6 @@ The dataset used contains data for TataMotors (Symbol: TATAMOTORS) from 16 July 
 ### Predicted Data vs Ground Truth
 <image src="./Images/Results.png" alt="Prediction Results" width=700>
 
-## Related Tools
-
-- [Brand Asset Studio](./brand-asset-studio) — a React app that generates a full set of on-brand social/marketing graphics from a reusable brand kit (colors, fonts, logo).
-
 ## Contributors 👨‍💻
 
 - [Mohammed Gaiban Khan](https://github.com/Gaiban-Khan/)

@@ -7,7 +7,9 @@ import { mixHex, readableTextColor, withAlpha } from '../../utils/color.js'
 export default function ThumbnailBoldLayout({ brand, width, height }) {
   const bg = `linear-gradient(135deg, ${brand.secondaryColor} 0%, ${brand.primaryColor} 100%)`
   const textColor = readableTextColor(brand.primaryColor)
-  const headlineSize = Math.round(height * 0.16)
+  // Clamp against width too so very wide/short canvases don't force oversized
+  // text into the headline's 62%-width column.
+  const headlineSize = Math.round(Math.min(height * 0.16, width * 0.075))
   const subSize = Math.round(height * 0.06)
 
   return (
@@ -20,7 +22,7 @@ export default function ThumbnailBoldLayout({ brand, width, height }) {
         overflow: 'hidden',
         display: 'flex',
         flexDirection: 'column',
-        justifyContent: 'center',
+        justifyContent: 'flex-end',
         padding: width * 0.06,
         boxSizing: 'border-box',
       }}

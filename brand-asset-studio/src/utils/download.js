@@ -2,7 +2,7 @@ import { toPng } from 'html-to-image'
 import { saveAs } from 'file-saver'
 import JSZip from 'jszip'
 
-function slugify(str) {
+export function slugify(str) {
   return str
     .toLowerCase()
     .trim()
@@ -26,6 +26,11 @@ export async function nodeToPngBlob(node, width, height) {
 export async function downloadTemplatePng(node, template, brandName) {
   const blob = await nodeToPngBlob(node, template.width, template.height)
   saveAs(blob, `${slugify(brandName)}-${template.id}.png`)
+}
+
+export async function downloadCustomPng(node, width, height, filename) {
+  const blob = await nodeToPngBlob(node, width, height)
+  saveAs(blob, filename)
 }
 
 export async function downloadAllAsZip(entries, brandName) {

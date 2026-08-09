@@ -4,17 +4,17 @@ import { ensureFontLoaded } from '../data/fonts.js'
 const STORAGE_KEY = 'brand-asset-studio:brand-kit:v1'
 
 const DEFAULT_BRAND = {
-  brandName: 'Nova Finance',
-  tagline: 'Smarter investing, simplified.',
+  brandName: 'Aurora Collective',
+  tagline: 'Design that moves with you.',
   primaryColor: '#4F46E5',
   secondaryColor: '#14B8A6',
   accentColor: '#F59E0B',
   headingFont: 'Space Grotesk',
   bodyFont: 'Inter',
   logoDataUrl: null,
-  headline: 'Predict Smarter. Invest Better.',
-  subheadline: 'AI-driven market insights for confident decisions.',
-  cta: 'Get Started',
+  headline: 'Build Brands People Remember.',
+  subheadline: 'A flexible design system for every channel.',
+  cta: 'Explore the kit',
 }
 
 function loadInitial() {
