@@ -1,9 +1,13 @@
 # Satellite Mapping of Protected Cultivation Structures — Rajasthan
 
 Status as of this commit: **research + pipeline scaffolding only, no detections have been
-run yet.** Nothing in `data/outputs/` should be treated as real output — the pilot run on
-Jaipur/Sikar is blocked on the setup steps in "What I need from you" below, plus one
-environment constraint discovered while building this (see next section).
+run yet.** Nothing in `data/outputs/` should be treated as real output. Decisions made so
+far: GEE noncommercial tier confirmed (section 4a), Stage 2 execution deliberately on hold
+until Stage 1 has real output (section 4b), and a parallel outreach track to the
+Horticulture Department is in progress (section 1 /
+[`docs/horticulture_dept_data_request.md`](docs/horticulture_dept_data_request.md)).
+Next concrete step is on you: complete GEE registration (section 4a) and hand me the
+project ID/credentials so Stage 1 can actually run on Jaipur/Sikar.
 
 ## 1. Does this mapping already exist? (researched, not exhaustive)
 
@@ -32,7 +36,13 @@ What the search evidence does show:
 *real* ground truth remains the Horticulture Department's subsidy-verification geo-tags —
 worth pursuing as an actual outreach/request, separate from and probably higher-value than
 building a computer-vision pipeline from scratch, since it would only need validation, not
-detection. I'd suggest doing both in parallel rather than picking one.
+detection. **Decision: pursuing both in parallel.** Draft outreach letter (informal
+data-sharing request) and a fallback formal RTI application are in
+[`docs/horticulture_dept_data_request.md`](docs/horticulture_dept_data_request.md) — both
+have placeholders for the addressee/portal since I couldn't verify current details of
+gov.in sites from this sandbox. Read that file, fill in your details, and send whichever
+you're comfortable with; report back what comes of it since it changes how much the CV
+pipeline below needs to carry on its own.
 
 ## 2. Environment constraint found while building this (important)
 
@@ -89,29 +99,27 @@ leaves the `tehsil` output column empty until that source is wired in.
 
 ## 4. What I need from you before Stage 1/2 can run for real
 
-**a) Google Earth Engine signup** (needed for Stage 1)
+**a) Google Earth Engine signup** (needed for Stage 1) — **you've confirmed noncommercial
+tier applies (research/education/nonprofit/government use).** That should keep Stage 1
+free, with the caveat that Google is the one who decides at registration time whether
+your project actually qualifies — if they push back and assign commercial tier instead,
+flag that back to me since it changes the cost picture in section 5.
 1. You need a Google account, and a Google Cloud project registered for Earth Engine
    access — GEE no longer allows unregistered personal-account access.
-2. At registration (via https://code.earthengine.google.com/register or through Cloud
-   Console) you choose a usage tier: **noncommercial** (free, but restricted to
-   research/education/nonprofit/government use — an individual doing this for a private
-   or commercial purpose likely doesn't qualify) or **commercial** (billing-enabled Cloud
-   project; Earth Engine compute itself has a substantial free monthly quota before any
-   charges kick in, but you're on the hook if a statewide job blows past it). **Tell me
-   which tier applies to you** — that determines whether I should expect this to stay
-   free or to flag potential Cloud Billing charges before running Stage 1 at district or
-   state scale.
+2. Register at https://code.earthengine.google.com/register (or through Cloud Console),
+   selecting the noncommercial/unpaid usage path and whatever eligibility category fits
+   (research, education, nonprofit, or government use).
 3. Once you have a project ID, either run `earthengine authenticate` interactively
    yourself and hand me the resulting credentials path, or create a service-account key
    with Earth Engine access and share *only* the key file path/contents through a secure
    channel (not pasted in plain chat) — I'll wire it into `config.yaml`'s `gee.project`
    field either way.
 
-**b) ESRI World Imagery licensing** (needed for Stage 2) — please check
-https://www.esri.com/en-us/legal/terms/full-master-agreement yourself and confirm bulk
-automated tile access for a pilot-district-scale pull (roughly 10,000–20,000 tiles at
-zoom 19 for Jaipur+Sikar) is acceptable under your account/usage type, or point me at an
-alternative high-res source you're licensed for.
+**b) ESRI World Imagery licensing** (needed for Stage 2) — **on hold per your call above.**
+Once Stage 1 is producing real candidate zones and you're ready to revisit Stage 2, check
+https://www.esri.com/en-us/legal/terms/full-master-agreement for bulk automated tile
+access, and plan to run Stage 2 somewhere that isn't this sandbox (see section 2 — it's
+network-blocked here regardless of licensing).
 
 **c) Anthropic API key** (optional, only for the vision-classification sub-step of Stage
 2) — only needed once you also have labeled example crops to few-shot from. Not urgent
