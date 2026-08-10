@@ -15,8 +15,14 @@ yourself before sending.**
 
 Faster than RTI, no fee, and framed as collaboration rather than a legal demand. Best
 addressed to the Horticulture Commissioner or Director, Directorate of Horticulture,
-Government of Rajasthan (Jaipur), or a District Horticulture Officer if you want to pilot
-with one district first (matches the Jaipur/Sikar pilot scope of this project).
+Government of Rajasthan — address: Pant Krishi Bhawan, Jaipur. One possible contact
+surfaced by search (**third-party aggregator, not an official source — verify before
+using**): Kailash Chand Meena, listed as Additional Director, phone 9799393562, via
+indiacustomercare.com. Government postings change often; confirm this is still accurate
+(e.g. by calling, or checking the department's current staff listing) before addressing
+anything to that name specifically. Alternatively, a District Horticulture Officer for
+Jaipur or Sikar if you want to pilot with one district first (matches this project's
+pilot scope) — I did not find a verified name/number for either.
 
 > Subject: Request for geo-tagged verification records — protected cultivation
 > (polyhouse/shade-net house) subsidy scheme, for agricultural-planning research
@@ -66,12 +72,17 @@ Use this if Option A goes unanswered, or if you want a legally-bound response ti
   Horticulture, Government of Rajasthan — look up the current PIO name/designation
   yourself (I could not verify this from here); addressing it to "The Public Information
   Officer, Directorate of Horticulture, Government of Rajasthan, Jaipur" without a name is
-  also acceptable under the Act if you can't confirm one.
-- **Submission channel**: Rajasthan has an online RTI portal (search "RTI Rajasthan
-  online" — verify the current URL yourself, I couldn't fetch rajasthan.gov.in from this
-  environment) as well as postal submission. Postal RTI requests require a ₹10 application
-  fee (Indian Postal Order or as specified by the portal) — confirm the current fee/mode,
-  it changes.
+  also acceptable under the Act if you can't confirm one. The official RTI portal
+  (see below) has a searchable department→PIO directory
+  (`rti.rajasthan.gov.in/rptdepartmentoffcer/...`) — use that once logged in to get the
+  current name rather than trusting a search-engine snippet.
+- **Submission channel**: the official portal is **https://rti.rajasthan.gov.in** (I
+  confirmed this URL via search, but could not open it myself — this environment blocks
+  rajasthan.gov.in domains, see main README section 2). It requires SSO registration tied
+  to your own mobile number/email, and lets you pay the RTI fee (₹10, per most current
+  guides, but confirm on the portal — fees change) and track status online. Postal
+  submission to the department address above is the fallback if you'd rather not use the
+  portal.
 - **Phrasing matters for RTI specifically**: public authorities can lawfully refuse a
   request that asks them to "create new information" by collating/analyzing existing
   records. Ask for data **"as maintained by the department"**, not a bespoke export —

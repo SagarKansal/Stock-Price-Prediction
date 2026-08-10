@@ -99,21 +99,34 @@ leaves the `tehsil` output column empty until that source is wired in.
 
 ## 4. What I need from you before Stage 1/2 can run for real
 
-**a) Google Earth Engine signup** (needed for Stage 1) — **you've confirmed noncommercial
-tier applies (research/education/nonprofit/government use).** That should keep Stage 1
-free, with the caveat that Google is the one who decides at registration time whether
-your project actually qualifies — if they push back and assign commercial tier instead,
-flag that back to me since it changes the cost picture in section 5.
-1. You need a Google account, and a Google Cloud project registered for Earth Engine
-   access — GEE no longer allows unregistered personal-account access.
-2. Register at https://code.earthengine.google.com/register (or through Cloud Console),
-   selecting the noncommercial/unpaid usage path and whatever eligibility category fits
-   (research, education, nonprofit, or government use).
-3. Once you have a project ID, either run `earthengine authenticate` interactively
-   yourself and hand me the resulting credentials path, or create a service-account key
-   with Earth Engine access and share *only* the key file path/contents through a secure
-   channel (not pasted in plain chat) — I'll wire it into `config.yaml`'s `gee.project`
-   field either way.
+**Why I can't just do these myself, when asked to:** both remaining blockers require your
+own identity, not just permission. GEE registration happens through your Google account's
+own OAuth login (username/password/2FA) — I have no browser session that's you, and I
+should never ask you for those credentials so I could pretend to be you. The Horticulture
+Dept. letter/RTI needs your real name, address, and (for the RTI portal) your own
+SSO-linked mobile/email and signature — I don't have those, and inventing placeholder
+identity details to file an official government request would just get it rejected or
+misattributed. Both are ~10-15 minutes of clicking that only works logged in as you.
+What I *can* do is everything up to that point, which I've now done — see below — and
+I'll immediately pick up Stage 1 the moment you hand me a project ID/credentials.
+
+**a) Google Earth Engine signup** (needed for Stage 1) — noncommercial tier confirmed.
+Concrete steps, verified against Google's current developer docs today:
+1. Go to https://console.cloud.google.com, sign in with your Google account, and create a
+   new Cloud project (or pick an existing one you're fine dedicating to this).
+2. In that project, enable the **Earth Engine API** (Cloud Console → APIs & Services →
+   Library → search "Earth Engine API" → Enable).
+3. Go to https://code.earthengine.google.com/register and register the project, choosing
+   the **noncommercial/unpaid** path and the eligibility category that fits (research /
+   education / nonprofit / government). As of Google's April 2026 update, noncommercial
+   projects land in the free **Community** tier by default (there are higher Contributor/
+   Partner tiers too, but Community should be sufficient for a pilot district).
+4. Once registered, either run `earthengine authenticate` yourself in a terminal (opens a
+   browser OAuth prompt, then prints a token this process stores locally) and tell me the
+   project ID so I can point `config.yaml`'s `gee.project` at it, or create a service
+   account with Earth Engine access (Cloud Console → IAM & Admin → Service Accounts) and
+   share *only* the resulting JSON key's path/contents with me through a secure channel —
+   never paste a credential directly into chat.
 
 **b) ESRI World Imagery licensing** (needed for Stage 2) — **on hold per your call above.**
 Once Stage 1 is producing real candidate zones and you're ready to revisit Stage 2, check
