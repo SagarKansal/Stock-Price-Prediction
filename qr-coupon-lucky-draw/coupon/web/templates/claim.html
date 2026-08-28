@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block title %}Claim coupon · {{ campaign_name }}{% endblock %}
+{% block content %}
+
+<section class="hero hero--compact">
+  <h1 class="hero__title">Claim your prize</h1>
+  <p class="coupon-chip">Coupon <strong>{{ code }}</strong></p>
+</section>
+
+{% if errors %}
+  <p class="alert alert--error">Please check the highlighted fields below.</p>
+{% endif %}
+
+<form class="card" method="post" id="claim-form"
+      action="{{ url_for('claim.submit_claim', code=code) }}" novalidate>
+
+  <!-- Step 1: mobile number. The rest of the form stays hidden until this is
+       filled in, which is why the fieldset below carries data-locked. With
+       JavaScript off, nothing is hidden and the whole form submits at once. -->
+  <fieldset class="step">
+    <legend class="step__legend"><span class="step__num">1</span> Your mobile number</legend>
+
+    <label class="field">
+      <span class="field__label">Mobile number</span>
+      <span class="field__group">
+        {% if mobile_country == 'IN' %}<span class="field__prefix">+91</span>{% endif %}
+        <input class="field__input {% if errors.get('mobile') %}field__input--bad{% endif %}"
+               type="tel" id="mobile" name="mobile" inputmode="numeric"
+               autocomplete="tel-national" maxlength="15"
+               placeholder="{% if mobile_country == 'IN' %}10-digit number{% else %}Mobile number{% endif %}"
+               value="{{ values.get('mobile', '') }}" required>
+      </span>
+      <span class="field__error" id="mobile-error">{{ errors.get('mobile') }}</span>
+    </label>
+
+    <button class="button" type="button" id="continue-btn" data-enhance="continue">Continue</button>
+  </fieldset>
+
+  <!-- Step 2: revealed once the number checks out. -->
+  <fieldset class="step" id="step-two" data-locked="true">
+    <legend class="step__legend"><span class="step__num">2</span> Your details</legend>
+
+    <label class="field">
+      <span class="field__label">Full name</span>
+      <input class="field__input {% if errors.get('name') %}field__input--bad{% endif %}"
+             type="text" id="name" name="name" maxlength="60"
+             autocomplete="name" placeholder="As it appears on your ID"
+             value="{{ values.get('name', '') }}" required>
+      <span class="field__error">{{ errors.get('name') }}</span>
+    </label>
+
+    <label class="field">
+      <span class="field__label">State</span>
+      <select class="field__input {% if errors.get('state') %}field__input--bad{% endif %}"
+              id="state" name="state" required>
+        <option value="">Select your state</option>
+        {% for state in states %}
+          <option value="{{ state }}" {% if values.get('state') == state %}selected{% endif %}>{{ state }}</option>
+        {% endfor %}
+      </select>
+      <span class="field__error">{{ errors.get('state') }}</span>
+    </label>
+
+    <label class="field">
+      <span class="field__label">District</span>
+      <input class="field__input {% if errors.get('district') %}field__input--bad{% endif %}"
+             type="text" id="district" name="district" list="district-options"
+             maxlength="60" autocomplete="address-level2" placeholder="Start typing your district"
+             value="{{ values.get('district', '') }}" required>
+      <datalist id="district-options"></datalist>
+      <span class="field__error">{{ errors.get('district') }}</span>
+    </label>
+
+    <button class="button button--primary" type="submit" id="submit-btn">
+      Claim my prize
+    </button>
+    <p class="field__hint">
+      We will send your prize details by SMS to the number above.
+    </p>
+  </fieldset>
+</form>
+
+<script id="districts-data" type="application/json">{{ districts_json|safe }}</script>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='claim.js') }}" defer></script>
+{% endblock %}

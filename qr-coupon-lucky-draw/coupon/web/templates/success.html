@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Congratulations · {{ campaign_name }}{% endblock %}
+{% block content %}
+
+<section class="card card--status card--{% if is_winner %}win{% else %}neutral{% endif %}">
+  <div class="status__icon" aria-hidden="true">{% if is_winner %}🎉{% else %}✓{% endif %}</div>
+
+  {% if is_winner %}
+    <h1 class="card__title">Congratulations, {{ coupon.name }}!</h1>
+    <p class="card__text">You have won</p>
+    <p class="prize">{{ amount_text }}</p>
+  {% else %}
+    <h1 class="card__title">Thank you, {{ coupon.name }}!</h1>
+    <p class="card__text">
+      This coupon did not win a cash prize this time. Better luck next time!
+    </p>
+  {% endif %}
+
+  <dl class="summary">
+    <div class="summary__row"><dt>Coupon code</dt><dd class="mono">{{ coupon.code }}</dd></div>
+    <div class="summary__row"><dt>Mobile</dt><dd>{{ masked_mobile }}</dd></div>
+    <div class="summary__row"><dt>District</dt><dd>{{ coupon.district }}, {{ coupon.state }}</dd></div>
+  </dl>
+
+  {% if sms_ok %}
+    <p class="alert alert--ok">A confirmation SMS has been sent to {{ masked_mobile }}.</p>
+  {% else %}
+    <p class="alert alert--warn">
+      Your claim is recorded against coupon <strong>{{ coupon.code }}</strong>, but we
+      could not send the SMS just now. Please save this page or note the code
+      {% if support_phone %}and call {{ support_phone }}{% endif %}.
+    </p>
+  {% endif %}
+</section>
+
+<p class="footnote">This coupon is now claimed and cannot be used again.</p>
+{% endblock %}

@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}{{ title }} · {{ campaign_name }}{% endblock %}
+{% block content %}
+<section class="card card--status card--{{ tone }}">
+  <div class="status__icon" aria-hidden="true">
+    {% if tone == 'error' %}!{% elif tone == 'warn' %}⏳{% else %}✓{% endif %}
+  </div>
+  <h1 class="card__title">{{ title }}</h1>
+  <p class="card__text">{{ body }}</p>
+</section>
+
+{% if show_manual_entry %}
+  {% include "_manual_entry.html" %}
+{% endif %}
+{% endblock %}

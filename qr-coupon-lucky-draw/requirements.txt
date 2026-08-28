@@ -1,0 +1,17 @@
+# Web application
+Flask>=3.0,<4.0
+
+# Coupon artwork: QR bitmaps and the print-ready PDF
+qrcode>=7.4
+Pillow>=10.0
+reportlab>=4.0
+
+# Google Sheets backend (not needed with COUPON_STORE=sqlite)
+gspread>=6.0
+google-auth>=2.28
+
+# SMS gateways (MSG91, Twilio) are called over plain HTTP
+requests>=2.31
+
+# Production WSGI server
+gunicorn>=21.2

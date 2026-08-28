@@ -1,0 +1,9 @@
+<form class="card card--tight" method="post" action="{{ url_for('claim.enter_code') }}">
+  <label class="field">
+    <span class="field__label">Enter the code printed on your coupon</span>
+    <input class="field__input field__input--code" type="text" name="code"
+           value="{{ code|default('') }}" placeholder="DR-XXXX-XXXX-XX"
+           autocomplete="off" autocapitalize="characters" spellcheck="false" required>
+  </label>
+  <button class="button" type="submit">Continue</button>
+</form>

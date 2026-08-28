@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Already claimed · {{ campaign_name }}{% endblock %}
+{% block content %}
+
+<section class="card card--status card--warn">
+  <div class="status__icon" aria-hidden="true">🔒</div>
+  <h1 class="card__title">Prize already claimed</h1>
+  <p class="card__text">
+    Coupon <strong class="mono">{{ coupon.code }}</strong> was already claimed and
+    cannot be used again.
+  </p>
+
+  <dl class="summary">
+    <div class="summary__row"><dt>Claimed by</dt><dd>{{ coupon.name }}</dd></div>
+    <div class="summary__row"><dt>Mobile</dt><dd>{{ masked_mobile }}</dd></div>
+    <div class="summary__row"><dt>Claimed on</dt><dd>{{ coupon.claimed_at[:10] }}</dd></div>
+    {% if coupon.prize_amount > 0 %}
+      <div class="summary__row"><dt>Prize</dt><dd>{{ amount_text }}</dd></div>
+    {% endif %}
+  </dl>
+
+  <p class="card__text card__text--small">
+    If this was not you, please contact our helpline{% if support_phone %} on
+    {{ support_phone }}{% endif %} with the coupon code above.
+  </p>
+</section>
+{% endblock %}

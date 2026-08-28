@@ -1,0 +1,23 @@
+# Local coupon ledger -- contains participant details, never commit it.
+# Anchored with a leading slash so this does NOT also swallow
+# coupon/data/india_states_districts.json, which the app needs at runtime.
+/data/
+*.db
+*.db-wal
+*.db-shm
+
+# Generated coupon artwork and exports
+/out/
+
+# Credentials
+.env
+*.json.key
+service-account*.json
+credentials*.json
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/

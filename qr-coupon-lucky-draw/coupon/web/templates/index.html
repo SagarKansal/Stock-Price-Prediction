@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="hero">
+  <h1 class="hero__title">Claim your prize</h1>
+  <p class="hero__text">
+    Scan the QR code on your coupon, or type the coupon code below to find out
+    what you have won.
+  </p>
+</section>
+
+{% if error %}<p class="alert alert--error">{{ error }}</p>{% endif %}
+
+{% include "_manual_entry.html" %}
+{% endblock %}
