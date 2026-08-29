@@ -100,6 +100,23 @@ The sheet is a report as well as a store, so people will edit it. What is safe:
 To take a coupon out of circulation, use `python -m coupon.cli void <code>`
 rather than editing the cell, so the ledger and the sheet agree.
 
+## Duplicate codes
+
+A spreadsheet has no unique constraint, so unlike the SQLite ledger the sheet
+cannot enforce uniqueness for itself. `add_batch` therefore checks: it
+force-refreshes the sheet's code list and refuses the whole batch if any code
+is already there, or repeated within the batch.
+
+That check is not atomic. Two operators running `generate` against the same
+sheet at the same instant could both pass it and both append. In practice:
+
+- **Generate from one machine.** There is no reason to do otherwise.
+- **Run `python -m coupon.cli verify --remote` before every print run.** It
+  audits the sheet for duplicate codes and duplicate QR URLs, and exits
+  non-zero if it finds any.
+- **Do not paste rows into the sheet by hand.** `verify --remote` will catch
+  it, but only if you run it.
+
 ## Quota
 
 The Sheets API allows roughly 60 read requests per minute per user. The app

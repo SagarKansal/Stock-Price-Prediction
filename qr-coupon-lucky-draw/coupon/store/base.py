@@ -5,6 +5,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from dataclasses import asdict, dataclass, field, replace
 from datetime import datetime, timezone
+from typing import Iterable
 
 AVAILABLE = "AVAILABLE"
 CLAIMED = "CLAIMED"
@@ -86,6 +87,32 @@ class Stats:
 
 class StoreError(RuntimeError):
     """The backing store could not be reached or refused a write."""
+
+
+class DuplicateCodeError(StoreError):
+    """A write would have put the same code on two coupons.
+
+    Uniqueness is the one property a coupon draw cannot recover from: two
+    coupons sharing a code means two people scan the same prize, and no
+    reconciliation afterwards can decide who should have had it. Every write
+    path refuses rather than repairs.
+    """
+
+    def __init__(self, codes: list[str], where: str) -> None:
+        self.codes = codes
+        shown = ", ".join(codes[:5]) + (f" (+{len(codes) - 5} more)" if len(codes) > 5 else "")
+        super().__init__(f"duplicate coupon code(s) {where}: {shown}")
+
+
+def find_duplicates(codes: Iterable[str]) -> list[str]:
+    """Return the codes that appear more than once, in first-seen order."""
+    seen: set[str] = set()
+    repeated: dict[str, None] = {}
+    for code in codes:
+        if code in seen:
+            repeated[code] = None
+        seen.add(code)
+    return list(repeated)
 
 
 class CouponStore(ABC):

@@ -13,8 +13,10 @@ from .base import (
     VOID,
     Coupon,
     CouponStore,
+    DuplicateCodeError,
     Stats,
     StoreError,
+    find_duplicates,
     utc_now_iso,
 )
 from .sqlite import SQLiteStore
@@ -23,6 +25,7 @@ __all__ = [
     "AVAILABLE", "CLAIMED", "VOID",
     "SMS_SENT", "SMS_FAILED", "SMS_SKIPPED", "SMS_PENDING",
     "Coupon", "CouponStore", "Stats", "StoreError", "SQLiteStore",
+    "DuplicateCodeError", "find_duplicates",
     "utc_now_iso", "build_store",
 ]
 

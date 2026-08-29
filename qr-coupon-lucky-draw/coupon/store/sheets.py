@@ -18,7 +18,7 @@ import threading
 import time
 from typing import Iterator
 
-from .base import Coupon, CouponStore, StoreError
+from .base import Coupon, CouponStore, DuplicateCodeError, StoreError, find_duplicates
 
 logger = logging.getLogger(__name__)
 
@@ -230,8 +230,26 @@ class GoogleSheetsStore(CouponStore):
         yield from self._coupons.values()
 
     def add_batch(self, coupons: list[Coupon]) -> int:
+        """Append coupons, refusing any code the sheet already carries.
+
+        A spreadsheet has no unique constraint, so unlike SQLite this backend
+        cannot have uniqueness enforced for it -- it has to check. The check
+        is not atomic: two operators generating against the same sheet at the
+        same moment could both pass it and both append. Generate from one
+        machine, and run ``cli.py verify`` before a print run to be sure.
+        """
         if not coupons:
             return 0
+
+        codes = [coupon.code for coupon in coupons]
+        repeated = find_duplicates(codes)
+        if repeated:
+            raise DuplicateCodeError(repeated, "within the batch being written")
+
+        already_there = sorted(set(self.all_codes()).intersection(codes))
+        if already_there:
+            raise DuplicateCodeError(already_there, f"already in worksheet {self.worksheet_name!r}")
+
         worksheet = self._open()
         rows = [self._coupon_to_row(coupon) for coupon in coupons]
         # Chunked so a large print run stays under the request size limit.

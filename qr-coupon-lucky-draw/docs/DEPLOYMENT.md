@@ -166,6 +166,16 @@ python -m coupon.cli generate --count 10000 --batch DIWALI \
        --prizes "50000x1,5000x10,1000x100,250x500" --out out
 ```
 
+Then audit the batch before it goes anywhere near a printer:
+
+```bash
+python -m coupon.cli verify            # duplicates, checksums, QR URLs
+python -m coupon.cli verify --remote   # the same, against the sheet
+```
+
+Both must exit 0. A duplicate code costs nothing to fix now and cannot be
+fixed once the coupons are printed.
+
 Before committing to a full print run:
 
 1. Print **one** page of the PDF on the actual coupon stock.

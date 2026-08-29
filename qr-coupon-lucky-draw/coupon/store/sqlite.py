@@ -19,7 +19,15 @@ import threading
 from pathlib import Path
 from typing import Iterator
 
-from .base import AVAILABLE, CLAIMED, Coupon, CouponStore, StoreError, utc_now_iso
+from .base import (
+    AVAILABLE,
+    CLAIMED,
+    Coupon,
+    CouponStore,
+    DuplicateCodeError,
+    utc_now_iso,
+    find_duplicates,
+)
 
 _COLUMNS = (
     "code", "prize_amount", "status", "batch", "mobile", "name", "state",
@@ -141,8 +149,25 @@ class SQLiteStore(CouponStore):
     # -- writes -------------------------------------------------------------
 
     def add_batch(self, coupons: list[Coupon]) -> int:
+        """Append coupons. The PRIMARY KEY is the real guarantee here.
+
+        The explicit checks below exist so the operator gets an actionable
+        message naming the clashing codes, rather than a bare IntegrityError.
+        The constraint still backs them up, including against a race the
+        checks cannot see.
+        """
         if not coupons:
             return 0
+
+        codes = [coupon.code for coupon in coupons]
+        repeated = find_duplicates(codes)
+        if repeated:
+            raise DuplicateCodeError(repeated, "within the batch being written")
+
+        existing = set(self.all_codes()).intersection(codes)
+        if existing:
+            raise DuplicateCodeError(sorted(existing), "already in the ledger")
+
         placeholders = ", ".join(["?"] * len(_COLUMNS))
         sql = f"INSERT INTO coupons ({', '.join(_COLUMNS)}) VALUES ({placeholders})"
         rows = [tuple(getattr(c, column) for column in _COLUMNS) for c in coupons]
@@ -153,8 +178,10 @@ class SQLiteStore(CouponStore):
                 conn.executemany(sql, rows)
                 conn.execute("COMMIT")
             except sqlite3.IntegrityError as exc:
+                # The PRIMARY KEY caught what the checks above could not --
+                # another process wrote the same code in between.
                 conn.execute("ROLLBACK")
-                raise StoreError(f"refusing to write a duplicate code: {exc}") from exc
+                raise DuplicateCodeError(codes, "rejected by the ledger's PRIMARY KEY") from exc
             except Exception:
                 conn.execute("ROLLBACK")
                 raise

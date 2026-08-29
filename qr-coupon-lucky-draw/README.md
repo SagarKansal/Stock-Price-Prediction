@@ -50,7 +50,7 @@ Open `out/DEMO-print.pdf` to see the coupons, then visit the URL from
 `out/DEMO-codes.csv` — with `COUPON_PUBLIC_BASE_URL` unset that is
 `http://localhost:5000/c/<code>`. The SMS appears in the server log.
 
-Run the tests with `pytest` (114 tests, no network or credentials needed).
+Run the tests with `pytest` (126 tests, no network or credentials needed).
 
 ## How a coupon code is built
 
@@ -77,6 +77,52 @@ by guessing one code in ~11 billion.
 > **`COUPON_CODE_SECRET` is permanent.** It fixes the checksum of every code you
 > print. Change it and every printed coupon stops validating. Generate it once,
 > put it in your secret store, and keep it for the life of the campaign.
+
+## Every QR is unique — and it is enforced, not assumed
+
+The QR image is a pure function of the code: it encodes
+`{COUPON_PUBLIC_BASE_URL}/c/{code}` and nothing else. Distinct codes therefore
+give distinct payloads, which give distinct QR bitmaps. There is no separate
+image to keep in step.
+
+Four independent layers stand behind that:
+
+| Layer | Guarantee |
+| --- | --- |
+| `generate()` | Mints into a `seen` set, so no code repeats within a batch. |
+| `--exclude` | The CLI loads every previously issued code before minting, so print runs cannot collide. |
+| `generate` pre-flight | Refuses to write or print if the minted batch contains a duplicate code *or* a duplicate QR URL. |
+| The store | SQLite enforces it with `code TEXT PRIMARY KEY`. Google Sheets has no unique constraint, so `add_batch` checks the batch against the sheet and refuses rather than appending. |
+
+Verified at 5,000 coupons: 5,000 distinct codes, 5,000 distinct QR payloads,
+5,000 distinct rendered bitmaps. `tests/test_uniqueness.py` locks in all of it,
+including that a rejected batch leaves no partial rows behind and that the
+`PRIMARY KEY` still catches a write that bypasses `add_batch` entirely.
+
+### Audit before you print
+
+```bash
+python -m coupon.cli verify            # the local ledger
+python -m coupon.cli verify --remote   # the Google Sheet
+```
+
+`verify` exits non-zero and refuses to bless the batch if it finds
+
+- duplicate codes, or duplicate QR URLs;
+- a coupon with no QR URL recorded;
+- a code that fails its checksum under the current `COUPON_CODE_SECRET` —
+  which is how you find out somebody rotated the secret under a live campaign;
+- a QR URL that does not match the current `COUPON_PUBLIC_BASE_URL` — a coupon
+  whose QR opens a host you no longer answer on is a dead coupon;
+- a ledger and a sheet that disagree about which codes exist.
+
+Everything on that list is free to fix before printing and impossible to fix
+after.
+
+> One caveat worth knowing: the Sheets duplicate check is not atomic. Two
+> operators generating against the same sheet at the same instant could both
+> pass it. Generate from one machine, and run `verify --remote` before the
+> print run.
 
 ## How prizes are decided
 
@@ -172,6 +218,7 @@ account setup.
 ```bash
 python -m coupon.cli generate --count N --batch LABEL --prizes "5000x1,500x20"
 python -m coupon.cli serve                  # development server
+python -m coupon.cli verify                 # audit uniqueness before printing
 python -m coupon.cli doctor                 # check config and connectivity
 python -m coupon.cli stats                  # totals, payout, claims by state
 python -m coupon.cli lookup DR-5EMX-FC07-9J
@@ -231,7 +278,7 @@ coupon/
   store/          base contract, SQLite ledger, Google Sheets
   web/            Flask app, routes, templates, CSS/JS
   cli.py          generate, sync, stats, lookup, export, void
-tests/            114 tests, no network or credentials required
+tests/            126 tests, no network or credentials required
 docs/             Google Sheets setup, deployment
 ```
 
@@ -240,6 +287,7 @@ docs/             Google Sheets setup, deployment
 - [ ] `COUPON_CODE_SECRET` generated, stored in a secret manager, and backed up.
 - [ ] `COUPON_PUBLIC_BASE_URL` is the real HTTPS URL — check it in the CSV before printing.
 - [ ] `COUPON_LEDGER_PATH` on durable disk, with backups.
+- [ ] `python -m coupon.cli verify` (and `--remote`) reports no problems.
 - [ ] Scan a proof coupon with a real phone camera before the full print run.
 - [ ] SMS sender ID and DLT template registered (India) and one live message tested.
 - [ ] `TRUST_PROXY_HEADERS=true` only behind a reverse proxy you control.

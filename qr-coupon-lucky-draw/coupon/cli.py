@@ -15,13 +15,20 @@ import sys
 from pathlib import Path
 
 from . import prizes as prize_module
-from .codes import format_for_print, generate as mint_codes
+from .codes import format_for_print, generate as mint_codes, is_valid
 from .config import DEV_CODE_SECRET, get_settings
 from .geo import states
 from .qr import build_print_sheet, coupon_url, save_qr_png, write_codes_csv
 from .service import CouponService
 from .sms import build_provider
-from .store import CLAIMED, Coupon, SQLiteStore, StoreError, build_store
+from .store import (
+    CLAIMED,
+    Coupon,
+    SQLiteStore,
+    StoreError,
+    build_store,
+    find_duplicates,
+)
 
 logger = logging.getLogger("coupon.cli")
 
@@ -119,6 +126,21 @@ def cmd_generate(args, settings) -> int:
         )
         for code, amount in zip(codes, amounts)
     ]
+
+    # Prove uniqueness before a single row is written or a single coupon is
+    # printed. generate() and the stores each guarantee this already; the
+    # point of repeating it here is that a duplicate discovered after the
+    # print run is unrecoverable, and this is the last moment it is free.
+    clashing_codes = find_duplicates(c.code for c in coupons)
+    clashing_urls = find_duplicates(c.qr_url for c in coupons)
+    if clashing_codes or clashing_urls:
+        print(
+            f"Refusing to continue: {len(clashing_codes)} duplicate code(s) and "
+            f"{len(clashing_urls)} duplicate QR URL(s) in the minted batch.",
+            file=sys.stderr,
+        )
+        return 3
+    print(f"Uniqueness checked: {len(coupons)} distinct codes, {len(coupons)} distinct QR URLs.")
 
     # The ledger first: it is what the site reads on every scan. A failure
     # writing to Sheets afterwards leaves a working campaign and a report to
@@ -280,6 +302,92 @@ def cmd_export(args, settings) -> int:
     return 0
 
 
+def cmd_verify(args, settings) -> int:
+    """Audit a campaign for the failures that a print run makes permanent.
+
+    Worth running after every generate and before every print run. Everything
+    it looks for is cheap to fix beforehand and impossible to fix afterwards.
+    """
+    service = _build_service(settings)
+    source = service.store if args.remote else service.ledger
+    where = "coupon store" if args.remote else "local ledger"
+
+    coupons = list(source.iter_coupons())
+    print(f"Auditing {len(coupons):,} coupon(s) in the {where}.\n")
+    if not coupons:
+        print("Nothing to check.")
+        return 0
+
+    problems = 0
+
+    duplicate_codes = find_duplicates(c.code for c in coupons)
+    if duplicate_codes:
+        problems += 1
+        print(f"  FAIL  {len(duplicate_codes)} duplicate code(s): "
+              f"{', '.join(duplicate_codes[:5])}")
+    else:
+        print(f"  ok    all {len(coupons):,} codes are distinct")
+
+    # The QR image is a pure function of the URL, so distinct URLs means
+    # distinct QR images -- there is no separate bitmap to check.
+    with_url = [c for c in coupons if c.qr_url]
+    duplicate_urls = find_duplicates(c.qr_url for c in with_url)
+    if duplicate_urls:
+        problems += 1
+        print(f"  FAIL  {len(duplicate_urls)} duplicate QR URL(s): "
+              f"{', '.join(duplicate_urls[:3])}")
+    elif len(with_url) < len(coupons):
+        problems += 1
+        print(f"  FAIL  {len(coupons) - len(with_url)} coupon(s) have no QR URL recorded")
+    else:
+        print(f"  ok    all {len(with_url):,} QR URLs are distinct")
+
+    # A code that no longer passes its own checksum means the secret changed
+    # under a live campaign, or somebody edited the sheet by hand.
+    bad_checksum = [c.code for c in coupons if not is_valid(
+        c.code, prefix=settings.code_prefix, secret=settings.code_secret)]
+    if bad_checksum:
+        problems += 1
+        print(f"  FAIL  {len(bad_checksum)} code(s) fail their checksum under the current "
+              f"COUPON_CODE_SECRET: {', '.join(bad_checksum[:5])}")
+    else:
+        print("  ok    every code validates against the current secret")
+
+    # A QR pointing somewhere the site no longer answers is a dead coupon.
+    wrong_host = [c.code for c in coupons
+                  if c.qr_url and c.qr_url != coupon_url(settings, c.code)]
+    if wrong_host:
+        problems += 1
+        print(f"  FAIL  {len(wrong_host)} QR URL(s) do not match COUPON_PUBLIC_BASE_URL "
+              f"({settings.public_base_url}): {', '.join(wrong_host[:3])}")
+    else:
+        print(f"  ok    every QR URL points at {settings.public_base_url}")
+
+    if service.store is not service.ledger and not args.remote:
+        try:
+            remote_codes = set(service.store.all_codes())
+        except StoreError as exc:
+            problems += 1
+            print(f"  FAIL  could not read the coupon store: {exc}")
+        else:
+            local_codes = {c.code for c in coupons}
+            missing = local_codes - remote_codes
+            extra = remote_codes - local_codes
+            if missing or extra:
+                problems += 1
+                print(f"  FAIL  ledger and store disagree: {len(missing)} code(s) only local, "
+                      f"{len(extra)} only remote -- run sync-codes / sync-claims")
+            else:
+                print(f"  ok    ledger and store hold the same {len(local_codes):,} codes")
+
+    print()
+    if problems:
+        print(f"{problems} problem(s) found. Do not print until these are resolved.")
+        return 3
+    print("No problems found.")
+    return 0
+
+
 def cmd_doctor(args, settings) -> int:
     print("Configuration check\n" + "-" * 60)
     print(f"Store backend:    {settings.store_backend}")
@@ -387,6 +495,12 @@ def build_parser() -> argparse.ArgumentParser:
     export.add_argument("--claimed-only", action="store_true")
     export.add_argument("--remote", action="store_true")
     export.set_defaults(func=cmd_export)
+
+    verify = sub.add_parser(
+        "verify", help="audit codes and QR URLs for duplicates before printing")
+    verify.add_argument("--remote", action="store_true",
+                        help="audit the coupon store instead of the local ledger")
+    verify.set_defaults(func=cmd_verify)
 
     doctor = sub.add_parser("doctor", help="check configuration and connectivity")
     doctor.set_defaults(func=cmd_doctor)
