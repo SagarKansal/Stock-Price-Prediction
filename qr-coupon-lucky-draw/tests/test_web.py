@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from coupon.codes import format_for_print, generate, printed_form
+from coupon.codes import generate, printed_form
 
 GOOD_FORM = {
     "mobile": "9876543210",
@@ -145,7 +145,7 @@ def test_form_errors_come_back_together_with_the_values(client, make_coupons):
 
 def test_manual_entry_redirects_to_the_coupon(client, make_coupons):
     coupon = make_coupons(1)[0]
-    printed = format_for_print(coupon.code, "DR")
+    printed = printed_form(coupon.code)
     response = client.post("/enter", data={"code": printed.lower()})
     assert response.status_code == 302
     assert response.headers["Location"].endswith(f"/c/{coupon.code}")

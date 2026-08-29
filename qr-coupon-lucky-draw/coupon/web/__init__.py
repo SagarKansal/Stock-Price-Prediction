@@ -72,9 +72,9 @@ def create_app(
     def _as_printed(value) -> str:
         """Render a Coupon (or a bare code) the way its coupon reads."""
         if hasattr(value, "code"):
-            return value.printed_code or printed_form(value.code, prefix=settings.code_prefix)
+            return value.printed_code or printed_form(value.code)
         try:
-            return printed_form(value, prefix=settings.code_prefix)
+            return printed_form(value)
         except Exception:
             # An authored code has no grouping to apply; show it as stored.
             return str(value)

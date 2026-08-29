@@ -5,7 +5,7 @@ from __future__ import annotations
 import csv
 from pathlib import Path
 
-from .codes import format_for_print, printed_form
+from .codes import printed_form
 from .config import Settings
 from .store import Coupon
 
@@ -76,7 +76,7 @@ def save_qr_png(url: str, path: Path, *, box_size: int = 10, border: int = 2) ->
     return path
 
 
-def write_codes_csv(coupons: list[Coupon], path: Path, *, prefix: str) -> Path:
+def write_codes_csv(coupons: list[Coupon], path: Path) -> Path:
     """A CSV of the batch, for the printer and for your own records."""
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", newline="", encoding="utf-8") as handle:
@@ -85,7 +85,7 @@ def write_codes_csv(coupons: list[Coupon], path: Path, *, prefix: str) -> Path:
         for coupon in coupons:
             writer.writerow([
                 coupon.code,
-                coupon.printed_code or format_for_print(coupon.code, prefix),
+                coupon.printed_code or printed_form(coupon.code),
                 coupon.prize_amount,
                 coupon.batch,
                 coupon.qr_url,
@@ -169,7 +169,7 @@ def build_print_sheet(
         # one prints in its hyphenated groups.
         pdf.drawCentredString(
             centre_x, text_y,
-            coupon.printed_code or printed_form(coupon.code, prefix=settings.code_prefix),
+            coupon.printed_code or printed_form(coupon.code),
         )
 
         pdf.setFont("Helvetica", 6.5)

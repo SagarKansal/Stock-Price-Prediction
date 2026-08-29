@@ -88,11 +88,11 @@ def test_a_backfilled_printed_code_round_trips(tmp_path, settings):
 
     store = SQLiteStore(path)
     coupon = store.get(code)
-    coupon.printed_code = printed_form(code, prefix=settings.code_prefix)
+    coupon.printed_code = printed_form(code)
     store.update(coupon)
 
     reloaded = store.get(code)
-    assert reloaded.printed_code == printed_form(code, prefix=settings.code_prefix)
+    assert reloaded.printed_code == printed_form(code)
     assert reloaded.printed_code.replace("-", "") == reloaded.code
     assert reloaded.status == CLAIMED             # untouched by the backfill
     store.close()

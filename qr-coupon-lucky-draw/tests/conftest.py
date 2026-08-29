@@ -21,7 +21,11 @@ def test_environment(monkeypatch, tmp_path):
     """Pin the environment every module reads through ``get_settings()``."""
     from coupon.config import reset_settings_cache
 
-    monkeypatch.setenv("COUPON_CODE_PREFIX", "DR")
+    # The shipped defaults: five characters, no prefix, no checksum, no hyphens.
+    monkeypatch.setenv("COUPON_CODE_LENGTH", "5")
+    monkeypatch.setenv("COUPON_CODE_PREFIX", "")
+    monkeypatch.setenv("COUPON_CODE_CHECK_CHARS", "0")
+    monkeypatch.setenv("COUPON_CODE_GROUP_SIZE", "0")
     monkeypatch.setenv("COUPON_CODE_SECRET", TEST_SECRET)
     monkeypatch.setenv("COUPON_PUBLIC_BASE_URL", "https://draw.example.com")
     monkeypatch.setenv("COUPON_STORE", "sqlite")
@@ -77,7 +81,7 @@ def make_coupons(settings, store):
     from coupon.store import Coupon
 
     def _make(count: int = 1, amounts: list[int] | None = None, batch: str = "TEST"):
-        codes = generate(count, prefix=settings.code_prefix, secret=settings.code_secret)
+        codes = generate(count, secret=settings.code_secret)
         values = amounts if amounts is not None else [1000] * count
         coupons = [
             Coupon(code=code, prize_amount=amount, batch=batch,

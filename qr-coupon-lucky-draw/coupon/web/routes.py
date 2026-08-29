@@ -18,7 +18,7 @@ from flask import (
 
 from ..geo import districts_by_state, states
 from ..service import ALREADY_CLAIMED, INVALID, OK, UNKNOWN, VOIDED, CouponService
-from ..codes import printed_form
+from ..codes import format_from_settings, printed_form
 from ..validation import (
     ValidationError,
     FormErrors,
@@ -56,7 +56,19 @@ def inject_globals() -> dict:
         "campaign_name": conf.campaign_name,
         "support_phone": conf.support_phone,
         "currency": conf.currency_symbol,
+        # Shown in the manual-entry box, so it has to track the configured
+        # code shape rather than hard-code one campaign's format.
+        "code_placeholder": _code_placeholder(),
     }
+
+
+def _code_placeholder() -> str:
+    """An example of the configured code shape, e.g. ``XXXXX``."""
+    try:
+        fmt = format_from_settings(settings())
+    except Exception:
+        return "XXXXX"
+    return printed_form(fmt.prefix + "X" * (fmt.length - len(fmt.prefix)), fmt=fmt)
 
 
 def _money(amount: int) -> str:
@@ -67,9 +79,7 @@ def _printed(coupon) -> str:
     """The code as printed on the coupon -- authored codes exactly as written."""
     if coupon is None:
         return ""
-    return coupon.printed_code or printed_form(
-        coupon.code, prefix=settings().code_prefix
-    )
+    return coupon.printed_code or printed_form(coupon.code)
 
 
 def _claimant_mobile(coupon) -> str:

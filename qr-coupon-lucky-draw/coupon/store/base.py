@@ -28,8 +28,8 @@ class Coupon:
 
     code: str
     # The same identifier as `code`, grouped the way it is printed on the
-    # coupon (DR-5EMX-FC07-9J). Stored rather than derived so the sheet can be
-    # searched for exactly the string a person reads off the paper; `verify`
+    # coupon (95FRZ, or GOLD1 if authored). Stored rather than derived so the
+    # sheet can be searched for the exact string a person reads out; `verify`
     # checks the two never drift apart.
     printed_code: str = ""
     prize_amount: int = 0

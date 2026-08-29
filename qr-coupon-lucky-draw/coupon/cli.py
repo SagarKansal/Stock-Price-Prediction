@@ -2,7 +2,7 @@
 
     python -m coupon.cli generate --count 500 --batch DIWALI --prizes "5000x1,500x20"
     python -m coupon.cli stats
-    python -m coupon.cli lookup DR-K7M2-9XQF-3A
+    python -m coupon.cli lookup K7M2X
     python -m coupon.cli sync-claims
 """
 
@@ -16,8 +16,10 @@ from pathlib import Path
 
 from . import prizes as prize_module
 from .codes import (
-    format_for_print,
+    CodeFormatError,
+    format_from_settings,
     generate as mint_codes,
+    guess_odds,
     is_plausible_external,
     is_valid,
     normalize_external,
@@ -97,8 +99,14 @@ def cmd_generate(args, settings) -> int:
     service = _build_service(settings)
     store, ledger = service.store, service.ledger
 
+    try:
+        fmt = format_from_settings(settings)
+    except CodeFormatError as exc:
+        print(f"Code format error: {exc}", file=sys.stderr)
+        return 2
+
     print(f"Batch:    {args.batch or '(none)'}")
-    print(f"Prefix:   {settings.code_prefix}")
+    print(f"Format:   {fmt.describe()}")
     print(f"Store:    {settings.store_backend}")
     print(f"Base URL: {settings.public_base_url}")
     print("Prizes:")
@@ -107,6 +115,16 @@ def cmd_generate(args, settings) -> int:
         default_amount=settings.default_prize_amount,
         currency=settings.currency_symbol,
     ))
+
+    # A short code is a deliberate trade, but it should be a made trade rather
+    # than an assumed one: say plainly how guessable this campaign will be.
+    odds = guess_odds(args.count + 0, fmt)
+    if odds > 0:
+        print(f"Guessing:  1 blind guess in {1 / odds:,.0f} would hit a live coupon "
+              f"({args.count:,} of {fmt.space:,})")
+    if odds > 0.001:
+        print("  WARNING: that is guessable. Consider a longer COUPON_CODE_LENGTH,\n"
+              "           and keep RATE_LIMIT_PER_MINUTE low with a limit in the proxy.")
 
     if not _confirm(f"Mint {args.count} coupons?", args.yes):
         print("Aborted.")
@@ -121,13 +139,17 @@ def cmd_generate(args, settings) -> int:
             print(f"Could not read the coupon store: {exc}", file=sys.stderr)
             return 3
 
-    codes = mint_codes(
-        args.count, prefix=settings.code_prefix, secret=settings.code_secret, exclude=existing
-    )
+    try:
+        codes = mint_codes(
+            args.count, fmt=fmt, secret=settings.code_secret, exclude=existing
+        )
+    except CodeFormatError as exc:
+        print(f"Cannot mint this batch: {exc}", file=sys.stderr)
+        return 2
     coupons = [
         Coupon(
             code=code,
-            printed_code=printed_form(code, prefix=settings.code_prefix),
+            printed_code=printed_form(code),
             prize_amount=amount,
             batch=args.batch,
             qr_url=coupon_url(settings, code),
@@ -179,7 +201,7 @@ def _emit_artwork(coupons: list[Coupon], args, settings) -> None:
     out_dir.mkdir(parents=True, exist_ok=True)
     stem = getattr(args, "batch", "") or "batch"
 
-    csv_path = write_codes_csv(coupons, out_dir / f"{stem}-codes.csv", prefix=settings.code_prefix)
+    csv_path = write_codes_csv(coupons, out_dir / f"{stem}-codes.csv")
     print(f"CSV:  {csv_path}")
 
     if not args.no_pdf:
@@ -380,7 +402,7 @@ def cmd_lookup(args, settings) -> int:
         return 1
 
     coupon = found.coupon
-    print(f"Code:        {format_for_print(coupon.code, settings.code_prefix)}")
+    print(f"Code:        {coupon.printed_code or printed_form(coupon.code)}")
     print(f"Status:      {coupon.status}")
     print(f"Prize:       {settings.currency_symbol}{coupon.prize_amount:,}")
     print(f"Batch:       {coupon.batch or '-'}")
@@ -505,8 +527,9 @@ def cmd_verify(args, settings) -> int:
 
     # A code that no longer passes its own checksum means the secret changed
     # under a live campaign, or somebody edited the sheet by hand.
-    bad_checksum = [c.code for c in coupons if not is_valid(
-        c.code, prefix=settings.code_prefix, secret=settings.code_secret)]
+    fmt = format_from_settings(settings)
+    bad_checksum = [c.code for c in coupons
+                    if not is_valid(c.code, fmt=fmt, secret=settings.code_secret)]
     if bad_checksum and settings.accept_external_codes:
         print(f"  ok    {len(coupons) - len(bad_checksum):,} minted code(s) validate; "
               f"{len(bad_checksum):,} authored code(s) accepted without a checksum")
@@ -527,7 +550,7 @@ def cmd_verify(args, settings) -> int:
         print("  ok    every QR encodes the same code that is printed beside it")
 
     # The property that matters is that the string on the coupon resolves back
-    # to the stored code -- true for a minted DR-TVGH-XGTC-9Q and an authored
+    # to the stored code -- true for a minted K7M2X and an authored
     # GOLD-001 alike. Comparing against the minted grouping would fail every
     # authored code, whose spelling is the operator's to choose.
     wrong_printed = [c.code for c in coupons
@@ -597,10 +620,10 @@ def cmd_backfill(args, settings) -> int:
 
         # Only supply a printed form that is missing or broken. An authored
         # code's spelling belongs to the operator: GOLD-001 must not be
-        # re-grouped into the minted DR-style blocks.
+        # re-grouped by the campaign's configured hyphen grouping.
         needs_printed = (not coupon.printed_code
                          or normalize_external(coupon.printed_code) != coupon.code)
-        wanted_printed = (printed_form(coupon.code, prefix=settings.code_prefix)
+        wanted_printed = (printed_form(coupon.code)
                           if needs_printed else coupon.printed_code)
         # Only rewrite a QR URL that is absent or points at the wrong coupon.
         # A merely different host may be deliberate, and silently rewriting it
@@ -636,7 +659,10 @@ def cmd_doctor(args, settings) -> int:
     print(f"Store backend:    {settings.store_backend}")
     print(f"Ledger:           {settings.ledger_path}")
     print(f"Public base URL:  {settings.public_base_url}")
-    print(f"Code prefix:      {settings.code_prefix}")
+    try:
+        print(f"Code format:      {format_from_settings(settings).describe()}")
+    except CodeFormatError as exc:
+        print(f"Code format:      INVALID - {exc}")
     print(f"SMS provider:     {settings.sms_provider}")
     print(f"Known states:     {len(states())}")
 

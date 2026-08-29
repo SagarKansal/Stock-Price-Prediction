@@ -50,33 +50,70 @@ Open `out/DEMO-print.pdf` to see the coupons, then visit the URL from
 `out/DEMO-codes.csv` — with `COUPON_PUBLIC_BASE_URL` unset that is
 `http://localhost:5000/c/<code>`. The SMS appears in the server log.
 
-Run the tests with `pytest` (160 tests, no network or credentials needed).
+Run the tests with `pytest` (175 tests, no network or credentials needed).
 
 ## How a coupon code is built
 
+Five characters, no hyphens:
+
 ```
-DR - 5EMX - FC07 - 9J
-│      │       │     │
-│      └───────┘     └── 2 check characters: HMAC(secret, prefix+body)
-│          │
-│          └─────────── 8 random characters (40 bits, ~1.1e12 codes)
-└────────────────────── campaign prefix
+K7M2X
+└───┘
+  5 random characters from a 32-letter alphabet
 ```
 
 The alphabet is Crockford base32 — `0123456789ABCDEFGHJKMNPQRSTVWXYZ` — with
 `I`, `L`, `O` and `U` removed. The first three are the characters people misread
 as `1`, `1` and `0`; `U` is dropped so a random code cannot spell something
-unfortunate. Input is folded before parsing, so `dr-o1il-0000` and
-`DR011 10000` reach the server as the same code.
+unfortunate. Input is folded before lookup, so `k7m2x`, `K7M2X` and `K7M2 X`
+are the same coupon.
 
-The check characters make a mistyped or invented code cheap to reject: it fails
-the HMAC locally and never costs a Google Sheets read. They are not the security
-boundary — that is the coupon list itself, which an attacker would have to hit
-by guessing one code in ~11 billion.
+### What five characters costs
 
-> **`COUPON_CODE_SECRET` is permanent.** It fixes the checksum of every code you
-> print. Change it and every printed coupon stops validating. Generate it once,
-> put it in your secret store, and keep it for the life of the campaign.
+The whole code space is **32⁵ = 33,554,432**. All five characters are spent on
+randomness, because on a code this short entropy is worth more than anything
+else you could buy with a character:
+
+| Spent on | Codes that can exist |
+| --- | --- |
+| 5 random | 33,554,432 |
+| 4 random + 1 check character | 1,048,576 |
+| 3 random + 2 check characters | 32,768 |
+
+A check character would let the server reject a typo without looking in the
+coupon list. That is worth one 32× cut in the code space on a twelve-character
+code; on a five-character one it is not. So there is **no checksum by default**,
+which means the coupon list is the only thing that decides whether a code is
+real, and *rate limiting is the defence that matters*.
+
+How exposed that leaves you depends entirely on how many coupons you print:
+
+| Coupons printed | Odds a blind guess hits a live one |
+| --- | --- |
+| 1,000 | 1 in 33,554 |
+| 10,000 | 1 in 3,355 |
+| 100,000 | 1 in 336 |
+| 500,000 | 1 in 67 |
+
+`generate` prints this figure for your batch before it mints anything, and
+warns when it goes above 1 in 1,000. At that point either lengthen the code or
+make sure the nginx rate limit in [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) is
+in place — a limiter is what turns "1 in 336" into hours of work per hit.
+
+### Changing the shape
+
+Every part is configurable, so a bigger campaign can buy back its margin:
+
+| Variable | Default | Effect |
+| --- | --- | --- |
+| `COUPON_CODE_LENGTH` | `5` | Total characters. Each one multiplies the space by 32. |
+| `COUPON_CODE_PREFIX` | *(none)* | Campaign prefix, counted **within** the length. |
+| `COUPON_CODE_CHECK_CHARS` | `0` | HMAC check characters, counted within the length. |
+| `COUPON_CODE_GROUP_SIZE` | `0` | Hyphens every N characters when printed. 0 = none. |
+
+`COUPON_CODE_LENGTH=8` gives a billion codes and still fits on a coupon.
+`COUPON_CODE_SECRET` only matters once `COUPON_CODE_CHECK_CHARS` is above zero,
+and like the code length it must not change while coupons are in circulation.
 
 ## The QR and the printed code are one identifier
 
@@ -84,13 +121,13 @@ The QR encodes `{COUPON_PUBLIC_BASE_URL}/c/{code}`, and the text printed under
 it is that same code grouped for reading:
 
 ```
-        [ QR ]  ->  https://draw.example.com/c/DRTVGHXGTC9Q
-   DR-TVGH-XGTC-9Q                          └─ the printed code, no hyphens
+        [ QR ]  ->  https://draw.example.com/c/K7M2X
+   K7M2X                          └─ the printed code, no hyphens
 ```
 
-The hyphens are presentation only. `normalize()` strips them, so scanning the
-QR, typing `DR-TVGH-XGTC-9Q` into the manual-entry box, and typing
-`drtvghxgtc9q` all reach the same coupon.
+case and spacing are folded, so scanning the
+QR, typing `K7M2X` into the manual-entry box, and typing `k7m2x` all reach the
+same coupon.
 
 **Both come from the same field.** At print time the QR payload and the text
 beneath it are derived from `coupon.code` — never from two places that could
@@ -102,7 +139,7 @@ than one that was never printed.
 
 **The participant sees that same string everywhere.** The claim page, the
 success page, the already-claimed page and the SMS all show
-`DR-TVGH-XGTC-9Q`, so checking a phone against a coupon is reading, not
+`K7M2X`, so checking a phone against a coupon is reading, not
 decoding. The sheet carries it too, in a **Printed Code** column beside the
 canonical one, so staff can search for exactly what a caller reads out.
 
@@ -176,9 +213,9 @@ python -m coupon.cli import-codes --from-csv list.csv --out out     # or from a 
 
 | Code | Prize Amount |
 | --- | --- |
-| GOLD-001 | 5000 |
-| DIWALI-1001 | 1000 |
-| LUCKY-0001 | 0 |
+| GOLD1 | 5000 |
+| DIW01 | 1000 |
+| LUCK1 | 0 |
 
 `import-codes` fills in the `Printed Code` and `QR URL` columns you cannot
 compute by hand, writes the ledger, and builds the same CSV, print PDF and
@@ -192,14 +229,14 @@ Two things to know about authored codes:
   the checksum stops being a gate and becomes a fast path: minted codes still
   resolve without touching the store, and anything else is left for the coupon
   list to accept or reject.
-- **Your spelling is preserved.** `GOLD-001` is stored as `GOLD001`, printed as
-  `GOLD-001`, and its QR points at `/c/GOLD001`. The confusable folding that
+- **Your spelling is preserved.** `GOLD1` is stored as `GOLD001`, printed as
+  `GOLD1`, and its QR points at `/c/GOLD001`. The confusable folding that
   repairs misread minted codes (`O`→`0`, `L`→`1`) is *not* applied to authored
-  ones — it would turn `GOLD-001` into `G01D001`.
+  ones — it would turn `GOLD1` into `G01D001`.
 
 Because nothing but the list itself vouches for an authored code, prefer codes
-with real entropy over sequential ones: `GOLD-001` tells anyone holding it that
-`GOLD-002` exists.
+with real entropy over sequential ones: `GOLD1` tells anyone holding it that
+`GOLD2` exists.
 
 ## How prizes are decided## How prizes are decided
 
@@ -261,7 +298,7 @@ A second scan of the same QR never shows the form again. It shows who holds
 the prize:
 
 > **Prize already claimed**
-> Coupon **GOLD-001** was already claimed and cannot be used again.
+> Coupon **GOLD1** was already claimed and cannot be used again.
 > Claimed by **Priya Sharma** · Mobile **9876543210** · Prize **₹5,000**
 
 Showing the full number is the default, because the point of that page is to
@@ -296,8 +333,8 @@ One row per code. Columns to the right of the code fill in as it is claimed:
 
 | Code | Printed Code | Prize Amount | Status | Mobile | Name | State | District | Claimed At (UTC) | SMS Status | SMS Reference | Scan Count | First Scanned At | Batch | QR URL | Notes |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| DR5EMXFC079J | DR-5EMX-FC07-9J | 5000 | CLAIMED | 9876543210 | Priya Sharma | Karnataka | Bengaluru Urban | 2026-08-28T14:54:17+00:00 | SENT | ref-1 | 3 | 2026-08-28T14:53:56+00:00 | DIWALI | https://… | |
-| DR9N3GC8G7Y1 | DR-9N3G-C8G7-Y1 | 0 | AVAILABLE | | | | | | | | 0 | | DIWALI | https://… | |
+| 95FRZ | 95FRZ | 5000 | CLAIMED | 9876543210 | Priya Sharma | Karnataka | Bengaluru Urban | 2026-08-28T14:54:17+00:00 | SENT | ref-1 | 3 | 2026-08-28T14:53:56+00:00 | DIWALI | https://… | |
+| PBM1S | PBM1S | 0 | AVAILABLE | | | | | | | | 0 | | DIWALI | https://… | |
 
 Reads are cached for 45 seconds, and writes happen once per claim, so a
 campaign stays well inside Google's ~60-reads-per-minute quota.
@@ -315,11 +352,11 @@ python -m coupon.cli verify                 # audit uniqueness before printing
 python -m coupon.cli backfill               # recompute Printed Code / QR URL from the code
 python -m coupon.cli doctor                 # check config and connectivity
 python -m coupon.cli stats                  # totals, payout, claims by state
-python -m coupon.cli lookup DR-5EMX-FC07-9J
+python -m coupon.cli lookup 95FRZ
 python -m coupon.cli export --out claims.csv --claimed-only
-python -m coupon.cli resend-sms DR-5EMX-FC07-9J
-python -m coupon.cli void DR-5EMX-FC07-9J --note "misprinted sheet"
-python -m coupon.cli restore DR-5EMX-FC07-9J
+python -m coupon.cli resend-sms 95FRZ
+python -m coupon.cli void 95FRZ --note "misprinted sheet"
+python -m coupon.cli restore 95FRZ
 python -m coupon.cli sync-claims            # push claims Sheets has not taken
 python -m coupon.cli sync-codes             # pull the code list into the ledger
 ```
@@ -334,7 +371,7 @@ Copy `.env.example` to `.env` and fill it in. The settings that matter most:
 
 | Variable | Purpose |
 | --- | --- |
-| `COUPON_CODE_SECRET` | Fixes every code's checksum. Set once, never change. |
+| `COUPON_CODE_LENGTH` | Characters per code (default 5). Never change mid-campaign. |
 | `COUPON_PUBLIC_BASE_URL` | Baked into every QR image at generation time. |
 | `COUPON_LEDGER_PATH` | The claim ledger. Must be durable disk. |
 | `COUPON_STORE` | `sheets` or `sqlite`. |
@@ -374,7 +411,7 @@ coupon/
   store/          base contract, SQLite ledger, Google Sheets
   web/            Flask app, routes, templates, CSS/JS
   cli.py          generate, sync, stats, lookup, export, void
-tests/            160 tests, no network or credentials required
+tests/            175 tests, no network or credentials required
 docs/             Google Sheets setup, deployment
 ```
 

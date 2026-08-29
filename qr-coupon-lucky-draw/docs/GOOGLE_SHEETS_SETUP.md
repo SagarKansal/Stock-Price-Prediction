@@ -77,9 +77,9 @@ column with the prize beside them and adopt the list:
 
 | Code | Prize Amount |
 | --- | --- |
-| GOLD-001 | 5000 |
-| DIWALI-1001 | 1000 |
-| LUCKY-0001 | 0 |
+| GOLD1 | 5000 |
+| DIW01 | 1000 |
+| LUCK1 | 0 |
 
 ```bash
 export COUPON_ACCEPT_EXTERNAL_CODES=true
@@ -98,7 +98,7 @@ parsed back correctly.
 | Column | Written when | Notes |
 | --- | --- | --- |
 | Code | generation | The canonical code, no hyphens. This is the lookup key. |
-| Printed Code | generation | The same code as printed on the coupon (`DR-5EMX-FC07-9J`). Search this column when a caller reads their code out. |
+| Printed Code | generation | The code as printed on the coupon (`95FRZ`, or `GOLD1` if you authored it). Search this column when a caller reads their code out. |
 | Prize Amount | generation | Fixed at generation. Do not edit for a live campaign. |
 | Status | generation, claim | `AVAILABLE`, `CLAIMED` or `VOID`. |
 | Mobile, Name, State, District | claim | What the participant entered. |

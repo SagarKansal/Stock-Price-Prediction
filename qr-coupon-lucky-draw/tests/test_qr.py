@@ -25,7 +25,7 @@ def test_qr_png_is_written_and_decodes_back(tmp_path, settings, make_coupons):
 
 def test_csv_lists_every_coupon(tmp_path, make_coupons):
     coupons = make_coupons(5, amounts=[100] * 5)
-    path = write_codes_csv(coupons, tmp_path / "codes.csv", prefix="DR")
+    path = write_codes_csv(coupons, tmp_path / "codes.csv")
     lines = path.read_text(encoding="utf-8").strip().splitlines()
     assert len(lines) == 6                       # header + 5
     assert lines[0].startswith("code,printed_code,prize_amount")

@@ -108,9 +108,7 @@ class CouponService:
         for the coupon list to accept or reject.
         """
         try:
-            return parse(
-                raw_code, prefix=self.settings.code_prefix, secret=self.settings.code_secret
-            ).canonical
+            return parse(raw_code, secret=self.settings.code_secret).canonical
         except InvalidCode:
             pass
 
@@ -193,8 +191,7 @@ class CouponService:
             # The printed form, so the SMS and the coupon in their hand read
             # identically when they check one against the other. An authored
             # code is quoted exactly as the operator wrote it.
-            code=coupon.printed_code or printed_form(
-                coupon.code, prefix=self.settings.code_prefix),
+            code=coupon.printed_code or printed_form(coupon.code),
             amount=coupon.prize_amount,
             mobile=coupon.mobile,
         )

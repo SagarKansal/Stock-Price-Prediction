@@ -234,7 +234,7 @@ def test_backfill_leaves_an_authored_printed_code_alone(store, settings):
     assert needs_printed is False
 
     # What the old rule would have produced, for contrast.
-    assert printed_form("GOLD001", prefix="DR") != "GOLD-001"
+    assert printed_form("GOLD001") != "GOLD-001"
 
 
 def test_backfill_repairs_a_printed_code_that_does_not_resolve(store):

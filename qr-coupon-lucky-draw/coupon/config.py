@@ -44,7 +44,13 @@ def _env_int(name: str, default: int) -> int:
 @dataclass(frozen=True)
 class Settings:
     # --- codes -----------------------------------------------------------
-    code_prefix: str = "DR"
+    # Total characters in a code. Every character spent on a prefix or a
+    # checksum below costs a factor of 32 in how many codes can exist.
+    code_length: int = 5
+    code_prefix: str = ""
+    code_check_chars: int = 0
+    # Hyphens inserted when the code is printed. 0 means none.
+    code_group_size: int = 0
     code_secret: str = DEV_CODE_SECRET
     # Accept coupon codes that were written into the sheet by hand rather than
     # minted here. With this on, the checksum stops being a gate and becomes
@@ -108,10 +114,10 @@ class Settings:
     def problems(self) -> list[str]:
         """Return the configuration mistakes that matter in production."""
         issues: list[str] = []
-        if self.code_secret == DEV_CODE_SECRET:
+        if self.code_secret == DEV_CODE_SECRET and self.code_check_chars:
             issues.append(
-                "COUPON_CODE_SECRET is still the development default -- codes "
-                "printed with it can be forged by anyone reading this repo."
+                "COUPON_CODE_SECRET is still the development default -- the check "
+                "characters printed with it can be forged by anyone reading this repo."
             )
         if self.flask_secret_key == "dev-only-flask-secret":
             issues.append("FLASK_SECRET_KEY is still the development default.")
@@ -139,7 +145,10 @@ def load_settings() -> Settings:
     """Build a :class:`Settings` from the current environment."""
     ledger = _env("COUPON_LEDGER_PATH")
     return Settings(
-        code_prefix=(_env("COUPON_CODE_PREFIX", "DR") or "DR").upper(),
+        code_length=_env_int("COUPON_CODE_LENGTH", 5),
+        code_prefix=_env("COUPON_CODE_PREFIX", "").upper(),
+        code_check_chars=_env_int("COUPON_CODE_CHECK_CHARS", 0),
+        code_group_size=_env_int("COUPON_CODE_GROUP_SIZE", 0),
         code_secret=_env("COUPON_CODE_SECRET", DEV_CODE_SECRET) or DEV_CODE_SECRET,
         accept_external_codes=_env_bool("COUPON_ACCEPT_EXTERNAL_CODES", False),
         public_base_url=_env("COUPON_PUBLIC_BASE_URL", "http://localhost:5000").rstrip("/"),

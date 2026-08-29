@@ -1,23 +1,31 @@
 """Generation, formatting and verification of coupon codes.
 
-A coupon code looks like ``DR-K7M2-9XQF-3A`` and is made of three parts:
+A code is a short string from an unambiguous alphabet, for example ``K7M2X``.
+Its shape is configuration, not a constant:
 
-``DR``
-    A batch/campaign prefix, so codes from different print runs are
-    distinguishable by eye.
-``K7M29XQF``
-    Eight characters of cryptographic randomness (40 bits, ~1.1e12
-    possibilities) drawn from a Crockford-style alphabet.
-``3A``
-    Two check characters derived from an HMAC of the rest of the code and a
-    server-side secret.
+``COUPON_CODE_LENGTH``
+    Total characters. Default 5.
+``COUPON_CODE_PREFIX``
+    A fixed campaign prefix, counted within the length. Default empty.
+``COUPON_CODE_CHECK_CHARS``
+    Trailing characters derived from an HMAC of the rest and a server-side
+    secret. Default 0.
+``COUPON_CODE_GROUP_SIZE``
+    Hyphen grouping when the code is printed. Default 0, meaning no hyphens.
 
-The check characters are what make a scanned or hand-typed code cheap to
-reject: a typo or a made-up code fails the HMAC locally, so it never costs a
-Google Sheets API call. They are *not* a substitute for the code actually
-existing in the coupon list -- an attacker who learned the secret still could
-not tell which codes were printed, and an attacker who did not is left
-guessing at 40 bits.
+**Every character spent on a prefix or a checksum costs a factor of 32 in the
+number of codes that can exist.** At the default length of 5 that trade is
+usually not worth making: the whole space is 32^5 = 33,554,432, and a single
+check character would cut it to about a million. The checksum only buys the
+ability to reject a typo without looking in the coupon list; the entropy buys
+resistance to somebody guessing a live coupon. On a short code, the entropy
+matters more, which is why the default spends all five characters on it.
+
+With no checksum, the coupon list is the only thing that decides whether a
+code is real, so :func:`parse` degrades to a shape-and-alphabet check and the
+lookup always reaches the store. Rate limiting is then the defence that
+matters -- see ``RATE_LIMIT_PER_MINUTE`` and the nginx limit in the deployment
+guide.
 """
 
 from __future__ import annotations
@@ -33,17 +41,87 @@ from hashlib import sha256
 # profanity out of printed codes.
 ALPHABET = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"
 _ALPHABET_INDEX = {ch: i for i, ch in enumerate(ALPHABET)}
+ALPHABET_SIZE = len(ALPHABET)
 
 # Characters a human is likely to type instead of the intended one.
 _CONFUSABLES = str.maketrans({"I": "1", "L": "1", "O": "0"})
 
-BODY_LENGTH = 8
-CHECK_LENGTH = 2
-_PREFIX_RE = re.compile(r"^[A-Z0-9]{1,6}$")
+MAX_LENGTH = 32
+_PREFIX_RE = re.compile(r"^[A-Z0-9]{0,8}$")
+
+# A code somebody typed into a spreadsheet can be any shape, but it still has
+# to survive being printed, scanned and read back.
+_EXTERNAL_MAX = 32
 
 
 class InvalidCode(ValueError):
     """Raised when a string cannot be a coupon code issued by this system."""
+
+
+class CodeFormatError(ValueError):
+    """Raised when the configured code shape is impossible."""
+
+
+@dataclass(frozen=True)
+class CodeFormat:
+    """The shape of every code in a campaign."""
+
+    length: int = 5
+    prefix: str = ""
+    check_chars: int = 0
+    group_size: int = 0
+
+    def __post_init__(self) -> None:
+        if not 3 <= self.length <= MAX_LENGTH:
+            raise CodeFormatError(
+                f"COUPON_CODE_LENGTH must be between 3 and {MAX_LENGTH}, got {self.length}"
+            )
+        if not _PREFIX_RE.match(self.prefix):
+            raise CodeFormatError("COUPON_CODE_PREFIX must be 0-8 characters, A-Z or 0-9")
+        if any(ch not in _ALPHABET_INDEX for ch in self.prefix):
+            raise CodeFormatError(
+                f"COUPON_CODE_PREFIX may only use these characters: {ALPHABET}"
+            )
+        if self.check_chars < 0:
+            raise CodeFormatError("COUPON_CODE_CHECK_CHARS cannot be negative")
+        if self.body_length < 1:
+            raise CodeFormatError(
+                f"a {self.length}-character code with a {len(self.prefix)}-character prefix "
+                f"and {self.check_chars} check character(s) leaves no room for randomness"
+            )
+
+    @property
+    def body_length(self) -> int:
+        """Characters of actual randomness."""
+        return self.length - len(self.prefix) - self.check_chars
+
+    @property
+    def space(self) -> int:
+        """How many distinct codes this format can ever produce."""
+        return ALPHABET_SIZE ** self.body_length
+
+    def describe(self) -> str:
+        parts = [f"{self.length} characters"]
+        if self.prefix:
+            parts.append(f"prefix {self.prefix!r}")
+        parts.append(f"{self.body_length} random")
+        parts.append(f"{self.check_chars} check" if self.check_chars else "no checksum")
+        parts.append("no hyphens" if not self.group_size else f"grouped by {self.group_size}")
+        return ", ".join(parts) + f" -> {self.space:,} possible codes"
+
+
+def format_from_settings(settings=None) -> CodeFormat:
+    """Build the :class:`CodeFormat` described by the environment."""
+    if settings is None:
+        from .config import get_settings
+
+        settings = get_settings()
+    return CodeFormat(
+        length=settings.code_length,
+        prefix=settings.code_prefix,
+        check_chars=settings.code_check_chars,
+        group_size=settings.code_group_size,
+    )
 
 
 @dataclass(frozen=True)
@@ -52,43 +130,40 @@ class ParsedCode:
 
     prefix: str
     body: str
+    check: str = ""
 
     @property
     def canonical(self) -> str:
-        """The code as stored and compared -- no hyphens, upper case."""
-        return f"{self.prefix}{self.body}{check_characters(self.prefix, self.body)}"
+        return f"{self.prefix}{self.body}{self.check}"
 
     @property
     def display(self) -> str:
-        """The code as printed on a coupon, in readable groups."""
-        return format_for_print(self.canonical, self.prefix)
+        return printed_form(self.canonical)
 
 
-def check_characters(prefix: str, body: str, *, secret: str | None = None) -> str:
-    """Return the check characters for ``prefix`` + ``body``."""
+def check_characters(prefix: str, body: str, count: int, *, secret: str | None = None) -> str:
+    """Return ``count`` check characters for ``prefix`` + ``body``."""
+    if count <= 0:
+        return ""
     from .config import get_settings
 
     key = (secret if secret is not None else get_settings().code_secret).encode("utf-8")
     digest = hmac.new(key, f"{prefix}{body}".encode("utf-8"), sha256).digest()
-    return "".join(ALPHABET[digest[i] % len(ALPHABET)] for i in range(CHECK_LENGTH))
+    return "".join(ALPHABET[digest[i] % ALPHABET_SIZE] for i in range(count))
 
 
 def normalize(raw: str) -> str:
-    """Fold user input towards the canonical form of a code.
+    """Fold user input towards the canonical form of a minted code.
 
     Upper-cases, drops separators and whitespace, and rewrites the characters
-    people habitually mistype (``I``/``L`` for ``1``, ``O`` for ``0``). It does
-    not validate -- an unparseable string still comes back, just tidier.
+    people habitually mistype (``I``/``L`` for ``1``, ``O`` for ``0``). Safe
+    only for codes minted from :data:`ALPHABET`, which contains none of those
+    letters -- see :func:`normalize_external` for codes written by hand.
     """
     if raw is None:
         return ""
     collapsed = re.sub(r"[^A-Za-z0-9]", "", str(raw)).upper()
     return collapsed.translate(_CONFUSABLES)
-
-
-# A code somebody typed into a spreadsheet can be any shape, but it still has
-# to survive being printed, scanned and read back.
-_EXTERNAL_MAX = 32
 
 
 def normalize_external(raw: str) -> str:
@@ -97,125 +172,142 @@ def normalize_external(raw: str) -> str:
     :func:`normalize` maps O to 0 and L to 1, which is right for codes minted
     from our alphabet -- it never contains those letters, so any sighting is a
     misread. It is destructive for a code somebody wrote themselves:
-    ``GOLD-001`` would become ``G01D001``. Sheet-authored codes therefore get
-    case folding and separator stripping only, and must match exactly.
+    ``GOLD01`` would become ``G01D01``. Sheet-authored codes therefore get case
+    folding and separator stripping only, and must match exactly.
     """
     return re.sub(r"[^A-Za-z0-9]", "", str(raw or "")).upper()
 
 
 def is_plausible_external(raw: str) -> bool:
-    """True if ``raw`` could be a coupon code somebody authored.
-
-    Deliberately permissive -- the coupon list is what decides validity. This
-    only rejects what could never be a code, so obvious junk costs no lookup.
-    """
+    """True if ``raw`` could be a coupon code somebody authored."""
     folded = normalize_external(raw)
     return 3 <= len(folded) <= _EXTERNAL_MAX
 
 
-def format_for_print(canonical: str, prefix: str) -> str:
-    """Render ``canonical`` as ``PREFIX-XXXX-XXXX-CC`` for printing."""
-    rest = canonical[len(prefix):]
-    return "-".join([prefix, rest[0:4], rest[4:8], rest[8:]])
+def format_for_print(canonical: str, *, group_size: int = 0) -> str:
+    """Render a code for printing, hyphenating every ``group_size`` characters.
+
+    ``group_size=0`` -- the default -- returns the code unchanged. A five
+    character code needs no help being read.
+    """
+    if group_size <= 0 or len(canonical) <= group_size:
+        return canonical
+    return "-".join(
+        canonical[i:i + group_size] for i in range(0, len(canonical), group_size)
+    )
 
 
-def printed_form(canonical: str, *, prefix: str | None = None) -> str:
-    """The code exactly as it appears on the coupon: ``DR-5EMX-FC07-9J``.
+def printed_form(canonical: str, *, fmt: CodeFormat | None = None) -> str:
+    """The code exactly as it appears on the coupon.
 
     This is the string a participant reads off the paper, so it is also the
-    string every screen and every SMS shows them. The hyphens are display-only
-    -- :func:`normalize` strips them -- but a person comparing their coupon to
-    their phone should not have to work out that ``DR5EMXFC079J`` is the same
-    thing.
+    string every screen and every SMS shows them.
     """
-    from .config import get_settings
-
-    used_prefix = (prefix if prefix is not None else get_settings().code_prefix).upper()
-    return format_for_print(canonical, used_prefix)
+    resolved = fmt if fmt is not None else format_from_settings()
+    return format_for_print(canonical, group_size=resolved.group_size)
 
 
-def parse(raw: str, *, prefix: str | None = None, secret: str | None = None) -> ParsedCode:
+def parse(raw: str, *, fmt: CodeFormat | None = None, secret: str | None = None) -> ParsedCode:
     """Validate ``raw`` and return its parsed form.
 
-    Raises :class:`InvalidCode` if the string is the wrong shape, carries the
-    wrong prefix, or fails its checksum.
+    Raises :class:`InvalidCode` if the string is the wrong length, carries the
+    wrong prefix, uses characters we never print, or -- when the format has
+    check characters -- fails its checksum.
     """
-    from .config import get_settings
-
-    expected_prefix = (prefix if prefix is not None else get_settings().code_prefix).upper()
+    resolved = fmt if fmt is not None else format_from_settings()
     candidate = normalize(raw)
 
     if not candidate:
         raise InvalidCode("empty code")
-    if not candidate.startswith(expected_prefix):
+    if len(candidate) != resolved.length:
+        raise InvalidCode(
+            f"code must be {resolved.length} characters, got {len(candidate)}"
+        )
+    if resolved.prefix and not candidate.startswith(resolved.prefix):
         raise InvalidCode("unrecognised code prefix")
-
-    remainder = candidate[len(expected_prefix):]
-    if len(remainder) != BODY_LENGTH + CHECK_LENGTH:
-        raise InvalidCode("code is the wrong length")
-
-    body, check = remainder[:BODY_LENGTH], remainder[BODY_LENGTH:]
-    if any(ch not in _ALPHABET_INDEX for ch in remainder):
+    if any(ch not in _ALPHABET_INDEX for ch in candidate):
         raise InvalidCode("code contains characters we never print")
 
-    expected_check = check_characters(expected_prefix, body, secret=secret)
-    # Constant-time to avoid leaking the checksum a character at a time.
-    if not hmac.compare_digest(check, expected_check):
-        raise InvalidCode("code failed its checksum")
+    start = len(resolved.prefix)
+    body = candidate[start:start + resolved.body_length]
+    check = candidate[start + resolved.body_length:]
 
-    return ParsedCode(prefix=expected_prefix, body=body)
+    if resolved.check_chars:
+        expected = check_characters(
+            resolved.prefix, body, resolved.check_chars, secret=secret
+        )
+        # Constant-time to avoid leaking the checksum a character at a time.
+        if not hmac.compare_digest(check, expected):
+            raise InvalidCode("code failed its checksum")
+
+    return ParsedCode(prefix=resolved.prefix, body=body, check=check)
 
 
-def is_valid(raw: str, *, prefix: str | None = None, secret: str | None = None) -> bool:
+def is_valid(raw: str, *, fmt: CodeFormat | None = None, secret: str | None = None) -> bool:
     """``True`` when :func:`parse` would succeed."""
     try:
-        parse(raw, prefix=prefix, secret=secret)
-    except InvalidCode:
+        parse(raw, fmt=fmt, secret=secret)
+    except (InvalidCode, CodeFormatError):
         return False
     return True
 
 
-def _random_body(rng: secrets.SystemRandom) -> str:
-    return "".join(rng.choice(ALPHABET) for _ in range(BODY_LENGTH))
-
-
-def generate(count: int, *, prefix: str | None = None, secret: str | None = None,
+def generate(count: int, *, fmt: CodeFormat | None = None, secret: str | None = None,
              exclude: set[str] | None = None) -> list[str]:
     """Return ``count`` distinct canonical codes.
 
-    ``exclude`` should hold the canonical codes already issued, so that
-    successive print runs cannot collide.
+    ``exclude`` should hold the canonical codes already issued, so successive
+    print runs cannot collide.
     """
-    from .config import get_settings
-
+    resolved = fmt if fmt is not None else format_from_settings()
     if count < 1:
         raise ValueError("count must be positive")
-    used_prefix = (prefix if prefix is not None else get_settings().code_prefix).upper()
-    if not _PREFIX_RE.match(used_prefix):
-        raise ValueError("prefix must be 1-6 characters, A-Z or 0-9")
-    if any(ch not in _ALPHABET_INDEX for ch in used_prefix):
-        raise ValueError(f"prefix may only use these characters: {ALPHABET}")
 
     seen = set(exclude or ())
+    space = resolved.space
+    if count + len(seen) > space:
+        raise CodeFormatError(
+            f"cannot mint {count:,} more codes: the format allows only {space:,} in total "
+            f"and {len(seen):,} are already issued. Increase COUPON_CODE_LENGTH."
+        )
+
     rng = secrets.SystemRandom()
     minted: list[str] = []
 
-    # 40 bits of body means collisions are vanishingly rare, but retrying is
-    # cheap and makes uniqueness a guarantee rather than a probability.
+    # Retrying on collision makes uniqueness a guarantee rather than a
+    # probability. The budget scales with how full the space already is,
+    # because near-full spaces need many more attempts per fresh code.
     attempts = 0
-    budget = count * 20 + 100
+    occupancy = (count + len(seen)) / space
+    budget = int(count * (20 + 200 * occupancy)) + 1000
     while len(minted) < count:
         attempts += 1
         if attempts > budget:
-            raise RuntimeError(
-                "could not mint enough distinct codes -- the code space for this "
-                "prefix is close to exhausted, use a new prefix"
+            raise CodeFormatError(
+                f"gave up after {attempts:,} attempts minting {count:,} codes -- the code "
+                f"space for this format ({space:,}) is too crowded. Increase "
+                "COUPON_CODE_LENGTH or use a new prefix."
             )
-        body = _random_body(rng)
-        canonical = f"{used_prefix}{body}{check_characters(used_prefix, body, secret=secret)}"
+        body = "".join(rng.choice(ALPHABET) for _ in range(resolved.body_length))
+        canonical = (
+            resolved.prefix + body
+            + check_characters(resolved.prefix, body, resolved.check_chars, secret=secret)
+        )
         if canonical in seen:
             continue
         seen.add(canonical)
         minted.append(canonical)
 
     return minted
+
+
+def guess_odds(issued: int, fmt: CodeFormat | None = None) -> float:
+    """Probability that one blind guess lands on a live coupon.
+
+    Surfaced by ``generate`` and ``doctor`` so the length of the code can be
+    judged against the size of the campaign rather than assumed safe.
+    """
+    resolved = fmt if fmt is not None else format_from_settings()
+    if resolved.space <= 0:
+        return 1.0
+    return min(1.0, issued / resolved.space)

@@ -60,7 +60,9 @@ def test_a_claim_records_details_and_sends_one_sms(service, make_coupons, sms):
     from coupon.codes import printed_form
 
     assert printed_form(coupon.code) in message
-    assert "-" in printed_form(coupon.code)
+    # Five characters, no hyphens: the SMS quotes the coupon verbatim.
+    assert printed_form(coupon.code) == coupon.code
+    assert len(coupon.code) == 5
 
 
 def test_a_second_claim_is_refused_and_sends_no_sms(service, make_coupons, sms):

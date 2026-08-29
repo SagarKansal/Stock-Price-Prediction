@@ -213,7 +213,7 @@ def test_the_qr_encodes_the_code_printed_on_the_coupon(settings, make_coupons):
         payload = qr_payload(coupon, settings)
         assert code_from_url(payload) == coupon.code
         # And the text under it is that same code, just grouped for reading.
-        printed = printed_form(coupon.code, prefix=settings.code_prefix)
+        printed = printed_form(coupon.code)
         assert printed.replace("-", "") == code_from_url(payload)
 
 
@@ -255,6 +255,6 @@ def test_printed_code_and_code_are_the_same_identifier(settings):
     from coupon.codes import normalize, parse, printed_form
 
     for code in generate(50):
-        printed = printed_form(code, prefix=settings.code_prefix)
+        printed = printed_form(code)
         assert normalize(printed) == code
         assert parse(printed).canonical == code
