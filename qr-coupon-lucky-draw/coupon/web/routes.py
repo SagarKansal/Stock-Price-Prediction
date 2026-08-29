@@ -18,9 +18,11 @@ from flask import (
 
 from ..geo import districts_by_state, states
 from ..service import ALREADY_CLAIMED, INVALID, OK, UNKNOWN, VOIDED, CouponService
+from ..codes import printed_form
 from ..validation import (
     ValidationError,
     FormErrors,
+    display_mobile,
     mask_mobile,
     normalize_mobile,
     validate_participant,
@@ -59,6 +61,20 @@ def inject_globals() -> dict:
 
 def _money(amount: int) -> str:
     return f"{settings().currency_symbol}{amount:,}"
+
+
+def _printed(coupon) -> str:
+    """The code as printed on the coupon -- authored codes exactly as written."""
+    if coupon is None:
+        return ""
+    return coupon.printed_code or printed_form(
+        coupon.code, prefix=settings().code_prefix
+    )
+
+
+def _claimant_mobile(coupon) -> str:
+    """How much of the claimant's number the already-claimed page reveals."""
+    return display_mobile(coupon.mobile, settings().claimed_mobile_display)
 
 
 # -- entry points -----------------------------------------------------------
@@ -129,12 +145,14 @@ def coupon_page(code: str):
 
     if found.status == ALREADY_CLAIMED:
         return render_template("claimed.html", coupon=found.coupon,
-                               masked_mobile=mask_mobile(found.coupon.mobile),
+                               claimant_mobile=_claimant_mobile(found.coupon),
+                               printed_code=_printed(found.coupon),
                                amount_text=_money(found.coupon.prize_amount)), 200
 
     return render_template(
         "claim.html",
         code=found.coupon.code,
+        printed_code=_printed(found.coupon),
         states=states(),
         districts_json=json.dumps(districts_by_state(), ensure_ascii=False),
         errors=FormErrors(),
@@ -193,6 +211,7 @@ def submit_claim(code: str):
         return render_template(
             "claim.html",
             code=code,
+            printed_code=_printed(svc.lookup(code).coupon) or code,
             states=states(),
             districts_json=json.dumps(districts_by_state(), ensure_ascii=False),
             errors=errors,
@@ -213,7 +232,9 @@ def submit_claim(code: str):
             "success.html",
             coupon=result.coupon,
             amount_text=_money(result.coupon.prize_amount),
-            masked_mobile=mask_mobile(result.coupon.mobile),
+            printed_code=_printed(result.coupon),
+            # Their own number, which they typed a moment ago -- no masking.
+            claimant_mobile=result.coupon.mobile,
             sms_ok=sms_ok,
             is_winner=result.coupon.is_winner,
         )
@@ -221,7 +242,8 @@ def submit_claim(code: str):
     if result.status == ALREADY_CLAIMED and result.coupon is not None:
         # Somebody else finished the same coupon while this form was open.
         return render_template("claimed.html", coupon=result.coupon,
-                               masked_mobile=mask_mobile(result.coupon.mobile),
+                               claimant_mobile=_claimant_mobile(result.coupon),
+                               printed_code=_printed(result.coupon),
                                amount_text=_money(result.coupon.prize_amount)), 409
 
     if result.status == VOIDED:

@@ -46,6 +46,10 @@ class Settings:
     # --- codes -----------------------------------------------------------
     code_prefix: str = "DR"
     code_secret: str = DEV_CODE_SECRET
+    # Accept coupon codes that were written into the sheet by hand rather than
+    # minted here. With this on, the checksum stops being a gate and becomes
+    # only a fast path: a code that fails it is still looked up in the list.
+    accept_external_codes: bool = False
 
     # --- public URLs -----------------------------------------------------
     # The QR image encodes f"{public_base_url}/c/{code}".
@@ -91,6 +95,9 @@ class Settings:
     campaign_name: str = "Lucky Draw"
     support_phone: str = ""
     mobile_country: str = "IN"             # IN enforces a 10-digit [6-9] number
+    # What the already-claimed page reveals about who claimed the coupon:
+    # "full" shows the number, "masked" shows 98XXXXX210, "hidden" shows none.
+    claimed_mobile_display: str = "full"
     rate_limit_per_minute: int = 12
     trust_proxy_headers: bool = False
 
@@ -134,6 +141,7 @@ def load_settings() -> Settings:
     return Settings(
         code_prefix=(_env("COUPON_CODE_PREFIX", "DR") or "DR").upper(),
         code_secret=_env("COUPON_CODE_SECRET", DEV_CODE_SECRET) or DEV_CODE_SECRET,
+        accept_external_codes=_env_bool("COUPON_ACCEPT_EXTERNAL_CODES", False),
         public_base_url=_env("COUPON_PUBLIC_BASE_URL", "http://localhost:5000").rstrip("/"),
         store_backend=(_env("COUPON_STORE", "sqlite") or "sqlite").lower(),
         ledger_path=Path(ledger) if ledger else PROJECT_ROOT / "data" / "ledger.db",
@@ -160,6 +168,7 @@ def load_settings() -> Settings:
         campaign_name=_env("CAMPAIGN_NAME", "Lucky Draw") or "Lucky Draw",
         support_phone=_env("SUPPORT_PHONE"),
         mobile_country=(_env("MOBILE_COUNTRY", "IN") or "IN").upper(),
+        claimed_mobile_display=(_env("CLAIMED_MOBILE_DISPLAY", "full") or "full").lower(),
         rate_limit_per_minute=_env_int("RATE_LIMIT_PER_MINUTE", 12),
         trust_proxy_headers=_env_bool("TRUST_PROXY_HEADERS", False),
     )

@@ -129,6 +129,24 @@ def mask_mobile(mobile: str) -> str:
     return f"{digits[:2]}{'X' * (len(digits) - 5)}{digits[-3:]}"
 
 
+def display_mobile(mobile: str, mode: str = "full") -> str:
+    """Render a claimant's number for a page a stranger might be looking at.
+
+    ``full`` is the default because the point of the already-claimed page is
+    to let the holder of a coupon see who claimed it. That does mean anyone
+    who picks up a spent coupon can read a real mobile number, so ``masked``
+    and ``hidden`` are there for campaigns that would rather not.
+    """
+    digits = _DIGITS.sub("", mobile or "")
+    if not digits:
+        return ""
+    if mode == "hidden":
+        return ""
+    if mode == "masked":
+        return mask_mobile(digits)
+    return digits
+
+
 def clean_name(raw: str) -> str:
     value = _collapse_whitespace(unicodedata.normalize("NFC", raw or ""))
     if len(value) < 2:

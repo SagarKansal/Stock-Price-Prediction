@@ -50,7 +50,7 @@ Open `out/DEMO-print.pdf` to see the coupons, then visit the URL from
 `out/DEMO-codes.csv` — with `COUPON_PUBLIC_BASE_URL` unset that is
 `http://localhost:5000/c/<code>`. The SMS appears in the server log.
 
-Run the tests with `pytest` (134 tests, no network or credentials needed).
+Run the tests with `pytest` (160 tests, no network or credentials needed).
 
 ## How a coupon code is built
 
@@ -158,7 +158,50 @@ after.
 > pass it. Generate from one machine, and run `verify --remote` before the
 > print run.
 
-## How prizes are decided
+## Two ways to get a coupon list
+
+**Mint them here** (the default). `generate` creates checksummed codes, assigns
+prizes from a plan, writes the sheet and builds the artwork. Best when you have
+no opinion about what the codes look like.
+
+**Write them yourself in the sheet.** Put your codes in the `Code` column and
+the prize in `Prize Amount` beside it, then adopt the list:
+
+```bash
+export COUPON_ACCEPT_EXTERNAL_CODES=true
+
+python -m coupon.cli import-codes --batch DIWALI --out out          # from the sheet
+python -m coupon.cli import-codes --from-csv list.csv --out out     # or from a CSV
+```
+
+| Code | Prize Amount |
+| --- | --- |
+| GOLD-001 | 5000 |
+| DIWALI-1001 | 1000 |
+| LUCKY-0001 | 0 |
+
+`import-codes` fills in the `Printed Code` and `QR URL` columns you cannot
+compute by hand, writes the ledger, and builds the same CSV, print PDF and
+PNGs that `generate` does. Re-running it picks up prize edits, and never
+touches a coupon that has already been claimed.
+
+Two things to know about authored codes:
+
+- **`COUPON_ACCEPT_EXTERNAL_CODES=true` is required.** Your codes carry no
+  checksum, so without it the site rejects every scan as malformed. With it,
+  the checksum stops being a gate and becomes a fast path: minted codes still
+  resolve without touching the store, and anything else is left for the coupon
+  list to accept or reject.
+- **Your spelling is preserved.** `GOLD-001` is stored as `GOLD001`, printed as
+  `GOLD-001`, and its QR points at `/c/GOLD001`. The confusable folding that
+  repairs misread minted codes (`O`→`0`, `L`→`1`) is *not* applied to authored
+  ones — it would turn `GOLD-001` into `G01D001`.
+
+Because nothing but the list itself vouches for an authored code, prefer codes
+with real entropy over sequential ones: `GOLD-001` tells anyone holding it that
+`GOLD-002` exists.
+
+## How prizes are decided## How prizes are decided
 
 Prizes are allocated when coupons are **printed**, not when they are claimed:
 
@@ -212,6 +255,21 @@ That is recoverable; a double-paid prize is not.
 > filesystem. Losing it means losing the record of who claimed what since the
 > last sync.
 
+## Scanning a claimed coupon
+
+A second scan of the same QR never shows the form again. It shows who holds
+the prize:
+
+> **Prize already claimed**
+> Coupon **GOLD-001** was already claimed and cannot be used again.
+> Claimed by **Priya Sharma** · Mobile **9876543210** · Prize **₹5,000**
+
+Showing the full number is the default, because the point of that page is to
+let whoever is holding the coupon see who claimed it. It does mean anyone who
+picks up a spent coupon can read a real mobile number, so
+`CLAIMED_MOBILE_DISPLAY` takes `masked` (`98XXXXX210`) or `hidden` if you would
+rather not.
+
 ## The claim form
 
 Step two stays hidden until the mobile number is entered and checked, exactly
@@ -251,6 +309,7 @@ account setup.
 
 ```bash
 python -m coupon.cli generate --count N --batch LABEL --prizes "5000x1,500x20"
+python -m coupon.cli import-codes --from-csv list.csv --out out
 python -m coupon.cli serve                  # development server
 python -m coupon.cli verify                 # audit uniqueness before printing
 python -m coupon.cli backfill               # recompute Printed Code / QR URL from the code
@@ -283,6 +342,8 @@ Copy `.env.example` to `.env` and fill it in. The settings that matter most:
 | `SMS_PROVIDER` | `msg91`, `twilio` or `console`. |
 | `SMS_TEMPLATE` | Placeholders: `{name} {code} {amount} {mobile} {currency} {campaign}`. |
 | `DEFAULT_PRIZE_AMOUNT` | Amount for coupons outside every prize tier. |
+| `COUPON_ACCEPT_EXTERNAL_CODES` | Accept codes authored in the sheet, which have no checksum. |
+| `CLAIMED_MOBILE_DISPLAY` | `full` (default), `masked` or `hidden` on the already-claimed page. |
 | `COUPON_ADMIN_TOKEN` | Enables `GET /admin/stats`. Unset keeps it a 404. |
 | `RATE_LIMIT_PER_MINUTE` | Per-IP limit on form posts. |
 
@@ -313,7 +374,7 @@ coupon/
   store/          base contract, SQLite ledger, Google Sheets
   web/            Flask app, routes, templates, CSS/JS
   cli.py          generate, sync, stats, lookup, export, void
-tests/            134 tests, no network or credentials required
+tests/            160 tests, no network or credentials required
 docs/             Google Sheets setup, deployment
 ```
 

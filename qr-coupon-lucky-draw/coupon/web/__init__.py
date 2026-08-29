@@ -69,9 +69,17 @@ def create_app(
     # Everywhere a participant sees their code on screen, show it exactly as
     # it is printed on the coupon -- hyphens and all -- so comparing the two
     # is reading, not decoding.
-    app.jinja_env.filters["printed"] = lambda code: printed_form(
-        code, prefix=settings.code_prefix
-    )
+    def _as_printed(value) -> str:
+        """Render a Coupon (or a bare code) the way its coupon reads."""
+        if hasattr(value, "code"):
+            return value.printed_code or printed_form(value.code, prefix=settings.code_prefix)
+        try:
+            return printed_form(value, prefix=settings.code_prefix)
+        except Exception:
+            # An authored code has no grouping to apply; show it as stored.
+            return str(value)
+
+    app.jinja_env.filters["printed"] = _as_printed
 
     from .routes import bp
 

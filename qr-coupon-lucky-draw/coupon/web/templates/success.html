@@ -17,16 +17,16 @@
   {% endif %}
 
   <dl class="summary">
-    <div class="summary__row"><dt>Coupon code</dt><dd class="mono">{{ coupon.code|printed }}</dd></div>
-    <div class="summary__row"><dt>Mobile</dt><dd>{{ masked_mobile }}</dd></div>
+    <div class="summary__row"><dt>Coupon code</dt><dd class="mono">{{ printed_code }}</dd></div>
+    <div class="summary__row"><dt>Mobile</dt><dd>{{ claimant_mobile }}</dd></div>
     <div class="summary__row"><dt>District</dt><dd>{{ coupon.district }}, {{ coupon.state }}</dd></div>
   </dl>
 
   {% if sms_ok %}
-    <p class="alert alert--ok">A confirmation SMS has been sent to {{ masked_mobile }}.</p>
+    <p class="alert alert--ok">A confirmation SMS has been sent to {{ claimant_mobile }}.</p>
   {% else %}
     <p class="alert alert--warn">
-      Your claim is recorded against coupon <strong class="mono">{{ coupon.code|printed }}</strong>, but we
+      Your claim is recorded against coupon <strong class="mono">{{ printed_code }}</strong>, but we
       could not send the SMS just now. Please save this page or note the code
       {% if support_phone %}and call {{ support_phone }}{% endif %}.
     </p>

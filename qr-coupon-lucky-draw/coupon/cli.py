@@ -15,7 +15,14 @@ import sys
 from pathlib import Path
 
 from . import prizes as prize_module
-from .codes import format_for_print, generate as mint_codes, is_valid, printed_form
+from .codes import (
+    format_for_print,
+    generate as mint_codes,
+    is_plausible_external,
+    is_valid,
+    normalize_external,
+    printed_form,
+)
 from .config import DEV_CODE_SECRET, get_settings
 from .geo import states
 from .qr import build_print_sheet, code_from_url, coupon_url, save_qr_png, write_codes_csv
@@ -160,9 +167,17 @@ def cmd_generate(args, settings) -> int:
             for coupon in coupons:
                 ledger.mark_synced(coupon.code, False)
 
+    _emit_artwork(coupons, args, settings)
+
+    print("\nDone. Keep COUPON_CODE_SECRET unchanged for the life of these coupons.")
+    return 0
+
+
+def _emit_artwork(coupons: list[Coupon], args, settings) -> None:
+    """Write the CSV, the printable PDF and (optionally) one PNG per coupon."""
     out_dir = Path(args.out)
     out_dir.mkdir(parents=True, exist_ok=True)
-    stem = args.batch or "batch"
+    stem = getattr(args, "batch", "") or "batch"
 
     csv_path = write_codes_csv(coupons, out_dir / f"{stem}-codes.csv", prefix=settings.code_prefix)
     print(f"CSV:  {csv_path}")
@@ -181,7 +196,152 @@ def cmd_generate(args, settings) -> int:
             save_qr_png(coupon.qr_url, images_dir / f"{coupon.code}.png")
         print(f"PNGs: {images_dir}/ ({len(coupons)} files)")
 
-    print("\nDone. Keep COUPON_CODE_SECRET unchanged for the life of these coupons.")
+
+def _read_authored_csv(path: Path) -> list[tuple[str, int]]:
+    """Read (code, prize) pairs from a CSV the operator wrote."""
+    rows: list[tuple[str, int]] = []
+    with path.open(encoding="utf-8-sig", newline="") as handle:
+        reader = csv.reader(handle)
+        for line_no, row in enumerate(reader, start=1):
+            if not row or not row[0].strip():
+                continue
+            code = row[0].strip()
+            # Tolerate a header row without making the caller declare one.
+            if line_no == 1 and code.lower() in {"code", "coupon", "coupon code"}:
+                continue
+            # "GOLD-001,₹1,000" splits into three fields: the thousands
+            # separator was never quoted. Reading the prize as ₹1 and paying
+            # it out is far worse than refusing the file, so refuse.
+            extras = [cell.strip() for cell in row[2:] if cell.strip()]
+            if extras:
+                raise ValueError(
+                    f"line {line_no}: code {code!r} has unexpected extra column(s) "
+                    f"{extras}. If the prize contains a thousands separator, quote it "
+                    f'as "1,000" or write it as 1000.'
+                )
+            raw_amount = (row[1] if len(row) > 1 else "0").strip()
+            digits = raw_amount.replace(",", "").replace("₹", "").strip()
+            try:
+                amount = int(float(digits)) if digits else 0
+            except ValueError:
+                raise ValueError(
+                    f"line {line_no}: prize {raw_amount!r} for code {code!r} is not a number"
+                )
+            rows.append((code, amount))
+    return rows
+
+
+def cmd_import_codes(args, settings) -> int:
+    """Adopt a coupon list somebody wrote themselves.
+
+    The other direction from ``generate``: instead of minting codes and
+    pushing them to the sheet, this takes codes and prize amounts that already
+    exist -- typed into the sheet, or handed over as a CSV -- and gives them
+    everything the campaign needs: a QR URL, a printed form, a ledger row, and
+    print-ready artwork.
+
+    Authored codes carry no checksum, so the site has to be told to accept
+    them with COUPON_ACCEPT_EXTERNAL_CODES=true. Without it they would all be
+    rejected as malformed at the moment somebody scanned one.
+    """
+    service = _build_service(settings)
+    store, ledger = service.store, service.ledger
+
+    if args.from_csv:
+        source_label = str(args.from_csv)
+        try:
+            authored = _read_authored_csv(Path(args.from_csv))
+        except (OSError, ValueError) as exc:
+            print(f"Could not read {args.from_csv}: {exc}", file=sys.stderr)
+            return 2
+    else:
+        if store is ledger:
+            print(
+                "Nothing to import from: COUPON_STORE=sqlite has no separate sheet.\n"
+                "Use --from-csv to import a list, or set COUPON_STORE=sheets.",
+                file=sys.stderr,
+            )
+            return 2
+        source_label = f"worksheet {settings.google_worksheet!r}"
+        authored = [(c.printed_code or c.code, c.prize_amount) for c in store.iter_coupons()]
+
+    if not authored:
+        print(f"No coupon codes found in {source_label}.")
+        return 1
+
+    # Normalise, and reject anything that could not survive being scanned.
+    prepared: list[Coupon] = []
+    rejected: list[tuple[str, str]] = []
+    for raw_code, amount in authored:
+        stored = normalize_external(raw_code)
+        if not is_plausible_external(raw_code):
+            rejected.append((raw_code, "too short or too long to be a coupon code"))
+            continue
+        if amount < 0:
+            rejected.append((raw_code, "negative prize amount"))
+            continue
+        prepared.append(Coupon(
+            code=stored,
+            # Printed exactly as authored, so the coupon matches the sheet.
+            printed_code=str(raw_code).strip(),
+            prize_amount=amount,
+            batch=args.batch,
+            qr_url=coupon_url(settings, stored),
+        ))
+
+    clashes = find_duplicates(c.code for c in prepared)
+    if clashes:
+        print(f"Refusing to import: {len(clashes)} duplicate code(s) in {source_label}: "
+              f"{', '.join(clashes[:5])}", file=sys.stderr)
+        return 3
+
+    print(f"Source:   {source_label}")
+    print(f"Found:    {len(prepared)} coupon(s), "
+          f"{settings.currency_symbol}{sum(c.prize_amount for c in prepared):,} total payout")
+    if rejected:
+        print(f"Skipping: {len(rejected)} unusable row(s)")
+        for raw_code, why in rejected[:5]:
+            print(f"  {raw_code!r}: {why}")
+    if not settings.accept_external_codes:
+        print("\nWARNING: COUPON_ACCEPT_EXTERNAL_CODES is not set. These codes have no\n"
+              "         checksum, so the site would reject every scan. Set it before\n"
+              "         the coupons go out.")
+
+    if not _confirm(f"Import {len(prepared)} coupon(s)?", args.yes):
+        print("Aborted.")
+        return 1
+
+    known = set(ledger.all_codes())
+    fresh = [c for c in prepared if c.code not in known]
+    existing = [c for c in prepared if c.code in known]
+
+    if fresh:
+        ledger.add_batch(fresh)
+    for coupon in existing:
+        # Keep the prize and printed form in step with the sheet, but never
+        # touch a coupon somebody has already claimed.
+        current = ledger.get(coupon.code)
+        if current is not None and current.status == CLAIMED:
+            continue
+        coupon.status = current.status if current else coupon.status
+        ledger.upsert(coupon)
+    print(f"Ledger:   {len(fresh)} added, {len(existing)} refreshed.")
+
+    # Give the sheet back the columns it could not have filled in itself.
+    if store is not ledger and not args.no_writeback:
+        written = 0
+        for coupon in prepared:
+            try:
+                store.update(coupon)
+                written += 1
+            except StoreError as exc:
+                print(f"  could not write back {coupon.code}: {exc}", file=sys.stderr)
+        print(f"Sheet:    filled in Printed Code and QR URL on {written} row(s).")
+
+    if args.out:
+        _emit_artwork(prepared, args, settings)
+
+    print("\nDone. Run 'verify' before printing.")
     return 0
 
 
@@ -347,7 +507,10 @@ def cmd_verify(args, settings) -> int:
     # under a live campaign, or somebody edited the sheet by hand.
     bad_checksum = [c.code for c in coupons if not is_valid(
         c.code, prefix=settings.code_prefix, secret=settings.code_secret)]
-    if bad_checksum:
+    if bad_checksum and settings.accept_external_codes:
+        print(f"  ok    {len(coupons) - len(bad_checksum):,} minted code(s) validate; "
+              f"{len(bad_checksum):,} authored code(s) accepted without a checksum")
+    elif bad_checksum:
         problems += 1
         print(f"  FAIL  {len(bad_checksum)} code(s) fail their checksum under the current "
               f"COUPON_CODE_SECRET: {', '.join(bad_checksum[:5])}")
@@ -363,16 +526,18 @@ def cmd_verify(args, settings) -> int:
     else:
         print("  ok    every QR encodes the same code that is printed beside it")
 
-    expected_printed = {c.code: printed_form(c.code, prefix=settings.code_prefix)
-                        for c in coupons}
+    # The property that matters is that the string on the coupon resolves back
+    # to the stored code -- true for a minted DR-TVGH-XGTC-9Q and an authored
+    # GOLD-001 alike. Comparing against the minted grouping would fail every
+    # authored code, whose spelling is the operator's to choose.
     wrong_printed = [c.code for c in coupons
-                     if c.printed_code and c.printed_code != expected_printed[c.code]]
+                     if c.printed_code and normalize_external(c.printed_code) != c.code]
     missing_printed = [c.code for c in coupons if not c.printed_code]
     if wrong_printed or missing_printed:
         problems += 1
         if wrong_printed:
-            print(f"  FAIL  {len(wrong_printed)} coupon(s) whose Printed Code has drifted from "
-                  f"the code: {', '.join(wrong_printed[:3])}")
+            print(f"  FAIL  {len(wrong_printed)} coupon(s) whose Printed Code does not "
+                  f"resolve to their code: {', '.join(wrong_printed[:3])}")
         if missing_printed:
             print(f"  FAIL  {len(missing_printed)} coupon(s) have no Printed Code "
                   f"-- run 'cli.py backfill'")
@@ -428,10 +593,15 @@ def cmd_backfill(args, settings) -> int:
 
     fixed = 0
     for coupon in list(ledger.iter_coupons()):
-        wanted_printed = printed_form(coupon.code, prefix=settings.code_prefix)
         wanted_url = coupon_url(settings, coupon.code)
 
-        needs_printed = coupon.printed_code != wanted_printed
+        # Only supply a printed form that is missing or broken. An authored
+        # code's spelling belongs to the operator: GOLD-001 must not be
+        # re-grouped into the minted DR-style blocks.
+        needs_printed = (not coupon.printed_code
+                         or normalize_external(coupon.printed_code) != coupon.code)
+        wanted_printed = (printed_form(coupon.code, prefix=settings.code_prefix)
+                          if needs_printed else coupon.printed_code)
         # Only rewrite a QR URL that is absent or points at the wrong coupon.
         # A merely different host may be deliberate, and silently rewriting it
         # would invalidate coupons already in circulation.
@@ -446,7 +616,8 @@ def cmd_backfill(args, settings) -> int:
             fixed += 1
             continue
 
-        coupon.printed_code = wanted_printed
+        if needs_printed:
+            coupon.printed_code = wanted_printed
         if needs_url:
             coupon.qr_url = wanted_url
         ledger.update(coupon)
@@ -535,6 +706,23 @@ def build_parser() -> argparse.ArgumentParser:
                      help="allow minting with the development secret or a localhost URL")
     gen.set_defaults(func=cmd_generate)
 
+    imp = sub.add_parser(
+        "import-codes",
+        help="adopt a coupon list authored in the sheet (or a CSV) and build its artwork")
+    imp.add_argument("--from-csv", default="",
+                     help="read code,prize rows from this CSV instead of the sheet")
+    imp.add_argument("--batch", default="", help="batch label recorded against each coupon")
+    imp.add_argument("--out", default="", help="directory for CSV/PDF/PNG output (omit to skip)")
+    imp.add_argument("--columns", type=int, default=3)
+    imp.add_argument("--rows", type=int, default=4)
+    imp.add_argument("--qr-images", action="store_true")
+    imp.add_argument("--no-pdf", action="store_true")
+    imp.add_argument("--show-prize", action="store_true")
+    imp.add_argument("--no-writeback", action="store_true",
+                     help="do not write Printed Code / QR URL back to the sheet")
+    imp.add_argument("--yes", action="store_true")
+    imp.set_defaults(func=cmd_import_codes)
+
     stats = sub.add_parser("stats", help="campaign totals")
     stats.add_argument("--remote", action="store_true", help="read the coupon store, not the ledger")
     stats.set_defaults(func=cmd_stats)
@@ -600,6 +788,9 @@ def main(argv: list[str] | None = None) -> int:
     settings = get_settings()
     try:
         return args.func(args, settings)
+    except BrokenPipeError:
+        # Someone piped us into `head`. Not an error worth a traceback.
+        return 0
     except KeyboardInterrupt:
         print("\nInterrupted.")
         return 130

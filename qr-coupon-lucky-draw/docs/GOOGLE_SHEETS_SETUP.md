@@ -70,6 +70,29 @@ Coupons are written to the local ledger first and appended to the sheet second.
 If the append fails, the campaign still works — the rows are flagged unsynced
 and `python -m coupon.cli sync-claims` pushes them once Sheets is reachable.
 
+## Writing the coupon list yourself
+
+You do not have to let `generate` invent the codes. Put your own in the `Code`
+column with the prize beside them and adopt the list:
+
+| Code | Prize Amount |
+| --- | --- |
+| GOLD-001 | 5000 |
+| DIWALI-1001 | 1000 |
+| LUCKY-0001 | 0 |
+
+```bash
+export COUPON_ACCEPT_EXTERNAL_CODES=true
+python -m coupon.cli import-codes --batch DIWALI --out out
+```
+
+That fills in `Printed Code` and `QR URL` for each row, writes the ledger, and
+builds the print PDF. Leave the other columns empty — the claim fills them in.
+
+Re-run it after editing prizes; it refreshes unclaimed rows and leaves claimed
+ones alone. Format the prize column as currency if you like: `₹1,000` is
+parsed back correctly.
+
 ## The columns
 
 | Column | Written when | Notes |

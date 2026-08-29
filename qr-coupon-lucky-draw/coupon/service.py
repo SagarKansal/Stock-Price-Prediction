@@ -24,7 +24,13 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass
 
-from .codes import InvalidCode, parse, printed_form
+from .codes import (
+    InvalidCode,
+    is_plausible_external,
+    normalize_external,
+    parse,
+    printed_form,
+)
 from .config import Settings
 from .sms import SmsProvider, SmsResult, render_message
 from .store import (
@@ -91,13 +97,28 @@ class CouponService:
     # -- lookup -------------------------------------------------------------
 
     def canonical(self, raw_code: str) -> str | None:
-        """Return the canonical code for user input, or ``None`` if malformed."""
+        """Return the stored form of a scanned or typed code, or ``None``.
+
+        Codes minted here carry a checksum, so they resolve without touching
+        the coupon list at all -- that is what keeps junk and enumeration off
+        the store. Codes an operator wrote into the sheet cannot have one, so
+        when ``COUPON_ACCEPT_EXTERNAL_CODES`` is on the checksum degrades from
+        a gate to a fast path: anything that fails it is normalised without
+        the confusable folding (which would corrupt an authored code) and left
+        for the coupon list to accept or reject.
+        """
         try:
             return parse(
                 raw_code, prefix=self.settings.code_prefix, secret=self.settings.code_secret
             ).canonical
         except InvalidCode:
+            pass
+
+        if not self.settings.accept_external_codes:
             return None
+        if not is_plausible_external(raw_code):
+            return None
+        return normalize_external(raw_code)
 
     def lookup(self, raw_code: str, *, count_scan: bool = False) -> LookupResult:
         """Resolve a scanned or typed code to its current state."""
@@ -170,8 +191,10 @@ class CouponService:
             self.settings,
             name=coupon.name,
             # The printed form, so the SMS and the coupon in their hand read
-            # identically when they check one against the other.
-            code=printed_form(coupon.code, prefix=self.settings.code_prefix),
+            # identically when they check one against the other. An authored
+            # code is quoted exactly as the operator wrote it.
+            code=coupon.printed_code or printed_form(
+                coupon.code, prefix=self.settings.code_prefix),
             amount=coupon.prize_amount,
             mobile=coupon.mobile,
         )

@@ -67,9 +67,8 @@ def test_full_claim_shows_the_prize_and_sends_the_sms(client, make_coupons, sms)
     assert "₹5,000" in body
     # Shown exactly as printed on the coupon, hyphens included.
     assert printed_form(coupon.code) in body
-    assert "98XXXXX210" in body
-    # The full mobile number never goes back to the browser.
-    assert "9876543210" not in body
+    # Their own number, just entered, is echoed back in full.
+    assert "9876543210" in body
 
     assert len(sms.sent) == 1
     assert "5,000" in sms.sent[0][1]
@@ -84,7 +83,8 @@ def test_a_second_scan_shows_the_prize_is_already_claimed(client, make_coupons):
     body = response.data.decode()
     assert "Prize already claimed" in body
     assert "Priya Sharma" in body
-    assert "98XXXXX210" in body
+    # A second scan reveals who holds the prize, mobile number included.
+    assert "9876543210" in body
     # No form to fill in a second time.
     assert 'id="claim-form"' not in body
 

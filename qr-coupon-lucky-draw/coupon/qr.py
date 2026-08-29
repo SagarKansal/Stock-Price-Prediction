@@ -165,8 +165,11 @@ def build_print_sheet(
 
         text_y = cell_y + cell_height - 15 * mm - qr_side
         pdf.setFont("Courier-Bold", 11)
+        # An operator-authored code prints exactly as it was written; a minted
+        # one prints in its hyphenated groups.
         pdf.drawCentredString(
-            centre_x, text_y, printed_form(coupon.code, prefix=settings.code_prefix)
+            centre_x, text_y,
+            coupon.printed_code or printed_form(coupon.code, prefix=settings.code_prefix),
         )
 
         pdf.setFont("Helvetica", 6.5)

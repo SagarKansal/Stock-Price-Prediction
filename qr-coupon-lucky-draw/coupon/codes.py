@@ -86,6 +86,33 @@ def normalize(raw: str) -> str:
     return collapsed.translate(_CONFUSABLES)
 
 
+# A code somebody typed into a spreadsheet can be any shape, but it still has
+# to survive being printed, scanned and read back.
+_EXTERNAL_MAX = 32
+
+
+def normalize_external(raw: str) -> str:
+    """Fold an operator-authored code, WITHOUT the confusable rewriting.
+
+    :func:`normalize` maps O to 0 and L to 1, which is right for codes minted
+    from our alphabet -- it never contains those letters, so any sighting is a
+    misread. It is destructive for a code somebody wrote themselves:
+    ``GOLD-001`` would become ``G01D001``. Sheet-authored codes therefore get
+    case folding and separator stripping only, and must match exactly.
+    """
+    return re.sub(r"[^A-Za-z0-9]", "", str(raw or "")).upper()
+
+
+def is_plausible_external(raw: str) -> bool:
+    """True if ``raw`` could be a coupon code somebody authored.
+
+    Deliberately permissive -- the coupon list is what decides validity. This
+    only rejects what could never be a code, so obvious junk costs no lookup.
+    """
+    folded = normalize_external(raw)
+    return 3 <= len(folded) <= _EXTERNAL_MAX
+
+
 def format_for_print(canonical: str, prefix: str) -> str:
     """Render ``canonical`` as ``PREFIX-XXXX-XXXX-CC`` for printing."""
     rest = canonical[len(prefix):]
