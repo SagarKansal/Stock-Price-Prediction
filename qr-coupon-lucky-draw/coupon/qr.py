@@ -5,7 +5,7 @@ from __future__ import annotations
 import csv
 from pathlib import Path
 
-from .codes import format_for_print
+from .codes import format_for_print, printed_form
 from .config import Settings
 from .store import Coupon
 
@@ -15,9 +15,43 @@ from .store import Coupon
 _ERROR_CORRECTION = "M"
 
 
+class CouponArtworkError(ValueError):
+    """A coupon could not be rendered because its QR and its text disagree."""
+
+
 def coupon_url(settings: Settings, code: str) -> str:
     """The URL encoded in the QR image for ``code``."""
     return f"{settings.public_base_url}/c/{code}"
+
+
+def code_from_url(url: str) -> str:
+    """Pull the coupon code back out of a QR payload."""
+    return (url or "").rstrip("/").rsplit("/", 1)[-1].strip().upper()
+
+
+def qr_payload(coupon: Coupon, settings: Settings) -> str:
+    """The URL to encode for ``coupon``, derived from the code it will print.
+
+    The QR and the human-readable code beneath it are the same identifier, and
+    this is what makes that structural rather than a coincidence: both come
+    from ``coupon.code``. A stored ``qr_url`` is honoured -- a campaign may
+    legitimately have moved host between generating and reprinting -- but only
+    once it is confirmed to carry the very code that will be printed. If it
+    does not, the coupon is not rendered at all: a coupon whose QR opens
+    someone else's prize is worse than a coupon that was never printed.
+    """
+    expected = coupon_url(settings, coupon.code)
+    if not coupon.qr_url:
+        return expected
+
+    embedded = code_from_url(coupon.qr_url)
+    if embedded != coupon.code:
+        raise CouponArtworkError(
+            f"coupon {coupon.code} would print a QR code for {embedded or '(no code)'} "
+            f"-- its stored QR URL is {coupon.qr_url!r}. Re-run 'cli.py verify' "
+            "and regenerate the batch rather than printing this."
+        )
+    return coupon.qr_url
 
 
 def make_qr_image(url: str, *, box_size: int = 10, border: int = 2):
@@ -51,7 +85,7 @@ def write_codes_csv(coupons: list[Coupon], path: Path, *, prefix: str) -> Path:
         for coupon in coupons:
             writer.writerow([
                 coupon.code,
-                format_for_print(coupon.code, prefix),
+                coupon.printed_code or format_for_print(coupon.code, prefix),
                 coupon.prize_amount,
                 coupon.batch,
                 coupon.qr_url,
@@ -117,8 +151,8 @@ def build_print_sheet(
             centre_x, cell_y + cell_height - 7 * mm, settings.campaign_name.upper()[:34]
         )
 
-        image = ImageReader(make_qr_image(coupon.qr_url or coupon_url(settings, coupon.code),
-                                          box_size=8, border=1))
+        # Same source of truth as the text drawn below: coupon.code.
+        image = ImageReader(make_qr_image(qr_payload(coupon, settings), box_size=8, border=1))
         pdf.drawImage(
             image,
             centre_x - qr_side / 2,
@@ -132,7 +166,7 @@ def build_print_sheet(
         text_y = cell_y + cell_height - 15 * mm - qr_side
         pdf.setFont("Courier-Bold", 11)
         pdf.drawCentredString(
-            centre_x, text_y, format_for_print(coupon.code, settings.code_prefix)
+            centre_x, text_y, printed_form(coupon.code, prefix=settings.code_prefix)
         )
 
         pdf.setFont("Helvetica", 6.5)

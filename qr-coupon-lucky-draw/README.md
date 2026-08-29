@@ -50,7 +50,7 @@ Open `out/DEMO-print.pdf` to see the coupons, then visit the URL from
 `out/DEMO-codes.csv` — with `COUPON_PUBLIC_BASE_URL` unset that is
 `http://localhost:5000/c/<code>`. The SMS appears in the server log.
 
-Run the tests with `pytest` (126 tests, no network or credentials needed).
+Run the tests with `pytest` (134 tests, no network or credentials needed).
 
 ## How a coupon code is built
 
@@ -77,6 +77,38 @@ by guessing one code in ~11 billion.
 > **`COUPON_CODE_SECRET` is permanent.** It fixes the checksum of every code you
 > print. Change it and every printed coupon stops validating. Generate it once,
 > put it in your secret store, and keep it for the life of the campaign.
+
+## The QR and the printed code are one identifier
+
+The QR encodes `{COUPON_PUBLIC_BASE_URL}/c/{code}`, and the text printed under
+it is that same code grouped for reading:
+
+```
+        [ QR ]  ->  https://draw.example.com/c/DRTVGHXGTC9Q
+   DR-TVGH-XGTC-9Q                          └─ the printed code, no hyphens
+```
+
+The hyphens are presentation only. `normalize()` strips them, so scanning the
+QR, typing `DR-TVGH-XGTC-9Q` into the manual-entry box, and typing
+`drtvghxgtc9q` all reach the same coupon.
+
+**Both come from the same field.** At print time the QR payload and the text
+beneath it are derived from `coupon.code` — never from two places that could
+drift. A stored `qr_url` is honoured (a campaign may have moved host between
+generating and reprinting) but only after `qr_payload()` confirms it carries
+the very code about to be printed. If it does not, the coupon is not rendered
+and the print run stops: a coupon whose QR opens someone else's prize is worse
+than one that was never printed.
+
+**The participant sees that same string everywhere.** The claim page, the
+success page, the already-claimed page and the SMS all show
+`DR-TVGH-XGTC-9Q`, so checking a phone against a coupon is reading, not
+decoding. The sheet carries it too, in a **Printed Code** column beside the
+canonical one, so staff can search for exactly what a caller reads out.
+
+Verified on the artefact that goes to the printer: every coupon cell in a
+generated PDF was cropped, its QR decoded, and the decoded code matched
+against the text printed in that same cell — 24/24, zero mismatches.
 
 ## Every QR is unique — and it is enforced, not assumed
 
@@ -109,6 +141,8 @@ python -m coupon.cli verify --remote   # the Google Sheet
 `verify` exits non-zero and refuses to bless the batch if it finds
 
 - duplicate codes, or duplicate QR URLs;
+- a QR encoding a different code than the coupon prints beside it;
+- a **Printed Code** that has drifted from its canonical code;
 - a coupon with no QR URL recorded;
 - a code that fails its checksum under the current `COUPON_CODE_SECRET` —
   which is how you find out somebody rotated the secret under a live campaign;
@@ -202,10 +236,10 @@ The full mobile number is never echoed back to the browser — screens show
 
 One row per code. Columns to the right of the code fill in as it is claimed:
 
-| Code | Prize Amount | Status | Mobile | Name | State | District | Claimed At (UTC) | SMS Status | SMS Reference | Scan Count | First Scanned At | Batch | QR URL | Notes |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| DR5EMXFC079J | 5000 | CLAIMED | 9876543210 | Priya Sharma | Karnataka | Bengaluru Urban | 2026-08-28T14:54:17+00:00 | SENT | ref-1 | 3 | 2026-08-28T14:53:56+00:00 | DIWALI | https://… | |
-| DR9N3GC8G7Y1 | 0 | AVAILABLE | | | | | | | | 0 | | DIWALI | https://… | |
+| Code | Printed Code | Prize Amount | Status | Mobile | Name | State | District | Claimed At (UTC) | SMS Status | SMS Reference | Scan Count | First Scanned At | Batch | QR URL | Notes |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| DR5EMXFC079J | DR-5EMX-FC07-9J | 5000 | CLAIMED | 9876543210 | Priya Sharma | Karnataka | Bengaluru Urban | 2026-08-28T14:54:17+00:00 | SENT | ref-1 | 3 | 2026-08-28T14:53:56+00:00 | DIWALI | https://… | |
+| DR9N3GC8G7Y1 | DR-9N3G-C8G7-Y1 | 0 | AVAILABLE | | | | | | | | 0 | | DIWALI | https://… | |
 
 Reads are cached for 45 seconds, and writes happen once per claim, so a
 campaign stays well inside Google's ~60-reads-per-minute quota.
@@ -219,6 +253,7 @@ account setup.
 python -m coupon.cli generate --count N --batch LABEL --prizes "5000x1,500x20"
 python -m coupon.cli serve                  # development server
 python -m coupon.cli verify                 # audit uniqueness before printing
+python -m coupon.cli backfill               # recompute Printed Code / QR URL from the code
 python -m coupon.cli doctor                 # check config and connectivity
 python -m coupon.cli stats                  # totals, payout, claims by state
 python -m coupon.cli lookup DR-5EMX-FC07-9J
@@ -278,7 +313,7 @@ coupon/
   store/          base contract, SQLite ledger, Google Sheets
   web/            Flask app, routes, templates, CSS/JS
   cli.py          generate, sync, stats, lookup, export, void
-tests/            126 tests, no network or credentials required
+tests/            134 tests, no network or credentials required
 docs/             Google Sheets setup, deployment
 ```
 

@@ -30,7 +30,7 @@ from .base import (
 )
 
 _COLUMNS = (
-    "code", "prize_amount", "status", "batch", "mobile", "name", "state",
+    "code", "printed_code", "prize_amount", "status", "batch", "mobile", "name", "state",
     "district", "claimed_at", "sms_status", "sms_reference", "scan_count",
     "first_scanned_at", "qr_url", "notes",
 )
@@ -38,6 +38,7 @@ _COLUMNS = (
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS coupons (
     code             TEXT PRIMARY KEY,
+    printed_code     TEXT    NOT NULL DEFAULT '',
     prize_amount     INTEGER NOT NULL DEFAULT 0,
     status           TEXT    NOT NULL DEFAULT 'AVAILABLE',
     batch            TEXT    NOT NULL DEFAULT '',
@@ -82,6 +83,20 @@ class SQLiteStore(CouponStore):
         self._write_lock = threading.Lock()
         with self._connect() as conn:
             conn.executescript(_SCHEMA)
+        self._migrate()
+
+    def _migrate(self) -> None:
+        """Add columns introduced after a ledger was first created.
+
+        A live campaign's ledger is not disposable -- it holds claims that may
+        not have reached the sheet yet -- so a schema change has to widen it in
+        place rather than expect a fresh file.
+        """
+        conn = self._connect()
+        present = {row["name"] for row in conn.execute("PRAGMA table_info(coupons)")}
+        for column, ddl in (("printed_code", "TEXT NOT NULL DEFAULT ''"),):
+            if column not in present:
+                conn.execute(f"ALTER TABLE coupons ADD COLUMN {column} {ddl}")
 
     # -- connection handling ------------------------------------------------
 

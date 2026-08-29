@@ -26,6 +26,7 @@ logger = logging.getLogger(__name__)
 # it maps to. Adding a column here is the only change needed to widen the sheet.
 COLUMN_MAP: list[tuple[str, str]] = [
     ("Code", "code"),
+    ("Printed Code", "printed_code"),
     ("Prize Amount", "prize_amount"),
     ("Status", "status"),
     ("Mobile", "mobile"),

@@ -74,7 +74,8 @@ and `python -m coupon.cli sync-claims` pushes them once Sheets is reachable.
 
 | Column | Written when | Notes |
 | --- | --- | --- |
-| Code | generation | The canonical code, no hyphens. |
+| Code | generation | The canonical code, no hyphens. This is the lookup key. |
+| Printed Code | generation | The same code as printed on the coupon (`DR-5EMX-FC07-9J`). Search this column when a caller reads their code out. |
 | Prize Amount | generation | Fixed at generation. Do not edit for a live campaign. |
 | Status | generation, claim | `AVAILABLE`, `CLAIMED` or `VOID`. |
 | Mobile, Name, State, District | claim | What the participant entered. |

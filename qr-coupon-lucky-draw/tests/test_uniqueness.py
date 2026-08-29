@@ -199,3 +199,62 @@ def test_sheets_accepts_a_genuinely_new_batch(fake_sheet):
     written = [row[0] for row in worksheet.rows[1:]]
     assert sorted(written) == sorted(first + second)
     assert find_duplicates(written) == []
+
+
+# -- the QR carries the code printed beside it ------------------------------
+
+
+def test_the_qr_encodes_the_code_printed_on_the_coupon(settings, make_coupons):
+    """Scanning must yield the same identifier the coupon shows in text."""
+    from coupon.codes import printed_form
+    from coupon.qr import code_from_url, qr_payload
+
+    for coupon in make_coupons(20):
+        payload = qr_payload(coupon, settings)
+        assert code_from_url(payload) == coupon.code
+        # And the text under it is that same code, just grouped for reading.
+        printed = printed_form(coupon.code, prefix=settings.code_prefix)
+        assert printed.replace("-", "") == code_from_url(payload)
+
+
+def test_code_from_url_recovers_the_code(settings):
+    from coupon.qr import code_from_url, coupon_url
+
+    code = generate(1)[0]
+    assert code_from_url(coupon_url(settings, code)) == code
+    assert code_from_url(f"https://x.example.com/c/{code}/") == code
+    assert code_from_url(f"  https://x.example.com/c/{code.lower()}  ") == code
+
+
+def test_rendering_refuses_a_coupon_whose_qr_points_at_another_code(settings, tmp_path):
+    """The failure this guards against: a QR opening someone else's prize."""
+    from coupon.qr import CouponArtworkError, build_print_sheet, qr_payload
+
+    mine, theirs = generate(2)
+    tampered = Coupon(code=mine, qr_url=f"{settings.public_base_url}/c/{theirs}")
+
+    with pytest.raises(CouponArtworkError) as caught:
+        qr_payload(tampered, settings)
+    assert mine in str(caught.value) and theirs in str(caught.value)
+
+    # And it must stop the print run, not just the single coupon.
+    with pytest.raises(CouponArtworkError):
+        build_print_sheet([tampered], tmp_path / "bad.pdf", settings=settings)
+
+
+def test_a_missing_qr_url_falls_back_to_the_code(settings):
+    """A coupon with no stored URL still prints a QR for its own code."""
+    from coupon.qr import code_from_url, qr_payload
+
+    code = generate(1)[0]
+    assert code_from_url(qr_payload(Coupon(code=code), settings)) == code
+
+
+def test_printed_code_and_code_are_the_same_identifier(settings):
+    """Hyphens are presentation; the two must normalise to one another."""
+    from coupon.codes import normalize, parse, printed_form
+
+    for code in generate(50):
+        printed = printed_form(code, prefix=settings.code_prefix)
+        assert normalize(printed) == code
+        assert parse(printed).canonical == code

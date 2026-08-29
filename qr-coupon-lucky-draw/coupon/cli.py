@@ -15,10 +15,10 @@ import sys
 from pathlib import Path
 
 from . import prizes as prize_module
-from .codes import format_for_print, generate as mint_codes, is_valid
+from .codes import format_for_print, generate as mint_codes, is_valid, printed_form
 from .config import DEV_CODE_SECRET, get_settings
 from .geo import states
-from .qr import build_print_sheet, coupon_url, save_qr_png, write_codes_csv
+from .qr import build_print_sheet, code_from_url, coupon_url, save_qr_png, write_codes_csv
 from .service import CouponService
 from .sms import build_provider
 from .store import (
@@ -120,6 +120,7 @@ def cmd_generate(args, settings) -> int:
     coupons = [
         Coupon(
             code=code,
+            printed_code=printed_form(code, prefix=settings.code_prefix),
             prize_amount=amount,
             batch=args.batch,
             qr_url=coupon_url(settings, code),
@@ -353,6 +354,31 @@ def cmd_verify(args, settings) -> int:
     else:
         print("  ok    every code validates against the current secret")
 
+    # The whole point: the QR and the code printed under it are one identifier.
+    mismatched = [c.code for c in coupons if c.qr_url and code_from_url(c.qr_url) != c.code]
+    if mismatched:
+        problems += 1
+        print(f"  FAIL  {len(mismatched)} coupon(s) whose QR encodes a different code than "
+              f"they print: {', '.join(mismatched[:3])}")
+    else:
+        print("  ok    every QR encodes the same code that is printed beside it")
+
+    expected_printed = {c.code: printed_form(c.code, prefix=settings.code_prefix)
+                        for c in coupons}
+    wrong_printed = [c.code for c in coupons
+                     if c.printed_code and c.printed_code != expected_printed[c.code]]
+    missing_printed = [c.code for c in coupons if not c.printed_code]
+    if wrong_printed or missing_printed:
+        problems += 1
+        if wrong_printed:
+            print(f"  FAIL  {len(wrong_printed)} coupon(s) whose Printed Code has drifted from "
+                  f"the code: {', '.join(wrong_printed[:3])}")
+        if missing_printed:
+            print(f"  FAIL  {len(missing_printed)} coupon(s) have no Printed Code "
+                  f"-- run 'cli.py backfill'")
+    else:
+        print("  ok    every Printed Code matches its code")
+
     # A QR pointing somewhere the site no longer answers is a dead coupon.
     wrong_host = [c.code for c in coupons
                   if c.qr_url and c.qr_url != coupon_url(settings, c.code)]
@@ -385,6 +411,52 @@ def cmd_verify(args, settings) -> int:
         print(f"{problems} problem(s) found. Do not print until these are resolved.")
         return 3
     print("No problems found.")
+    return 0
+
+
+def cmd_backfill(args, settings) -> int:
+    """Recompute the columns that are derived from the code.
+
+    Both ``printed_code`` and ``qr_url`` are stored copies of something the
+    code already determines. They are stored so the sheet is searchable and so
+    reprints are reproducible, which means a schema change or a base-URL move
+    can leave them stale or blank. This puts them back in step without
+    touching claims.
+    """
+    service = _build_service(settings)
+    ledger = service.ledger
+
+    fixed = 0
+    for coupon in list(ledger.iter_coupons()):
+        wanted_printed = printed_form(coupon.code, prefix=settings.code_prefix)
+        wanted_url = coupon_url(settings, coupon.code)
+
+        needs_printed = coupon.printed_code != wanted_printed
+        # Only rewrite a QR URL that is absent or points at the wrong coupon.
+        # A merely different host may be deliberate, and silently rewriting it
+        # would invalidate coupons already in circulation.
+        needs_url = not coupon.qr_url or code_from_url(coupon.qr_url) != coupon.code
+
+        if not (needs_printed or needs_url):
+            continue
+        if args.dry_run:
+            print(f"  would fix {coupon.code}"
+                  f"{' printed_code' if needs_printed else ''}"
+                  f"{' qr_url' if needs_url else ''}")
+            fixed += 1
+            continue
+
+        coupon.printed_code = wanted_printed
+        if needs_url:
+            coupon.qr_url = wanted_url
+        ledger.update(coupon)
+        service._mirror(coupon)
+        fixed += 1
+
+    verb = "would update" if args.dry_run else "updated"
+    print(f"{verb} {fixed} coupon(s).")
+    if args.dry_run and fixed:
+        print("Re-run without --dry-run to apply.")
     return 0
 
 
@@ -501,6 +573,11 @@ def build_parser() -> argparse.ArgumentParser:
     verify.add_argument("--remote", action="store_true",
                         help="audit the coupon store instead of the local ledger")
     verify.set_defaults(func=cmd_verify)
+
+    backfill = sub.add_parser(
+        "backfill", help="recompute Printed Code and QR URL from each coupon's code")
+    backfill.add_argument("--dry-run", action="store_true", help="report without writing")
+    backfill.set_defaults(func=cmd_backfill)
 
     doctor = sub.add_parser("doctor", help="check configuration and connectivity")
     doctor.set_defaults(func=cmd_doctor)

@@ -92,6 +92,21 @@ def format_for_print(canonical: str, prefix: str) -> str:
     return "-".join([prefix, rest[0:4], rest[4:8], rest[8:]])
 
 
+def printed_form(canonical: str, *, prefix: str | None = None) -> str:
+    """The code exactly as it appears on the coupon: ``DR-5EMX-FC07-9J``.
+
+    This is the string a participant reads off the paper, so it is also the
+    string every screen and every SMS shows them. The hyphens are display-only
+    -- :func:`normalize` strips them -- but a person comparing their coupon to
+    their phone should not have to work out that ``DR5EMXFC079J`` is the same
+    thing.
+    """
+    from .config import get_settings
+
+    used_prefix = (prefix if prefix is not None else get_settings().code_prefix).upper()
+    return format_for_print(canonical, used_prefix)
+
+
 def parse(raw: str, *, prefix: str | None = None, secret: str | None = None) -> ParsedCode:
     """Validate ``raw`` and return its parsed form.
 

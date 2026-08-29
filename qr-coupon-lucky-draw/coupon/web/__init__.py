@@ -6,6 +6,7 @@ import logging
 
 from flask import Flask
 
+from ..codes import printed_form
 from ..config import Settings, get_settings
 from ..sms import SmsProvider, build_provider
 from ..store import CouponStore, SQLiteStore, build_store
@@ -64,6 +65,13 @@ def create_app(
         from werkzeug.middleware.proxy_fix import ProxyFix
 
         app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
+
+    # Everywhere a participant sees their code on screen, show it exactly as
+    # it is printed on the coupon -- hyphens and all -- so comparing the two
+    # is reading, not decoding.
+    app.jinja_env.filters["printed"] = lambda code: printed_form(
+        code, prefix=settings.code_prefix
+    )
 
     from .routes import bp
 

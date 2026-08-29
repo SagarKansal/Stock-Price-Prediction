@@ -24,7 +24,7 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass
 
-from .codes import InvalidCode, parse
+from .codes import InvalidCode, parse, printed_form
 from .config import Settings
 from .sms import SmsProvider, SmsResult, render_message
 from .store import (
@@ -169,7 +169,9 @@ class CouponService:
         message = render_message(
             self.settings,
             name=coupon.name,
-            code=coupon.code,
+            # The printed form, so the SMS and the coupon in their hand read
+            # identically when they check one against the other.
+            code=printed_form(coupon.code, prefix=self.settings.code_prefix),
             amount=coupon.prize_amount,
             mobile=coupon.mobile,
         )

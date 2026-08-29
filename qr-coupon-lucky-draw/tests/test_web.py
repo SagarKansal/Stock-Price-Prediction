@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from coupon.codes import format_for_print, generate
+from coupon.codes import format_for_print, generate, printed_form
 
 GOOD_FORM = {
     "mobile": "9876543210",
@@ -65,7 +65,8 @@ def test_full_claim_shows_the_prize_and_sends_the_sms(client, make_coupons, sms)
     body = response.data.decode()
     assert "Congratulations" in body
     assert "₹5,000" in body
-    assert coupon.code in body
+    # Shown exactly as printed on the coupon, hyphens included.
+    assert printed_form(coupon.code) in body
     assert "98XXXXX210" in body
     # The full mobile number never goes back to the browser.
     assert "9876543210" not in body

@@ -55,7 +55,12 @@ def test_a_claim_records_details_and_sends_one_sms(service, make_coupons, sms):
     to, message = sms.sent[0]
     assert to == "9876543210"
     assert "5,000" in message
-    assert coupon.code in message
+    # The SMS must quote the code the way the coupon prints it, so the winner
+    # can hold phone and coupon side by side and read the same string.
+    from coupon.codes import printed_form
+
+    assert printed_form(coupon.code) in message
+    assert "-" in printed_form(coupon.code)
 
 
 def test_a_second_claim_is_refused_and_sends_no_sms(service, make_coupons, sms):
