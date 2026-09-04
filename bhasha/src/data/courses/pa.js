@@ -1,0 +1,77 @@
+import { w, s, g } from './_helpers.js'
+
+export default {
+  code: 'pa',
+  review: 'draft',
+  lexicon: {
+    hello: w('ਸਤ ਸ੍ਰੀ ਅਕਾਲ','sat srī akāl'), thanks: w('ਧੰਨਵਾਦ','dhannvād'), please: w('ਕਿਰਪਾ ਕਰਕੇ','kirpā karke'),
+    sorry: w('ਮਾਫ਼ ਕਰੋ','māf karo'), yes: w('ਹਾਂ','hā̃'), no: w('ਨਹੀਂ','nahī̃'),
+    goodbye: w('ਰੱਬ ਰਾਖਾ','rabb rākhā',{ note:'literally "God protect you"' }),
+    welcome: w('ਜੀ ਆਇਆਂ ਨੂੰ','jī āiyā̃ nū̃'), how_are_you: w('ਤੁਸੀਂ ਕਿਵੇਂ ਹੋ','tusī̃ kivẽ ho'),
+
+    i: w('ਮੈਂ','maĩ'), you: w('ਤੂੰ','tū̃'), you_formal: w('ਤੁਸੀਂ','tusī̃'), he_she: w('ਉਹ','uh'),
+    we: w('ਅਸੀਂ','asī̃'), they: w('ਉਹ','uh'),
+    man: w('ਆਦਮੀ','ādmī',{ g:'m' }), woman: w('ਔਰਤ','aurat',{ g:'f' }), boy: w('ਮੁੰਡਾ','muṇḍā',{ g:'m' }),
+    girl: w('ਕੁੜੀ','kuṛī',{ g:'f' }), friend: w('ਦੋਸਤ','dost',{ g:'m' }), mother: w('ਮਾਂ','mā̃',{ g:'f' }),
+    father: w('ਪਿਤਾ','pitā',{ g:'m' }), brother: w('ਭਰਾ','bharā',{ g:'m' }), sister: w('ਭੈਣ','bhaiṇ',{ g:'f' }),
+    child: w('ਬੱਚਾ','baccā',{ g:'m' }), name: w('ਨਾਮ','nām',{ g:'m' }), teacher: w('ਅਧਿਆਪਕ','adhiāpak',{ g:'m' }),
+
+    water: w('ਪਾਣੀ','pāṇī',{ g:'m' }), tea: w('ਚਾਹ','cāh',{ g:'f' }), milk: w('ਦੁੱਧ','duddh',{ g:'m' }),
+    rice: w('ਚੌਲ','caul',{ g:'m' }), bread: w('ਰੋਟੀ','roṭī',{ g:'f' }), food: w('ਖਾਣਾ','khāṇā',{ g:'m' }),
+    salt: w('ਲੂਣ','lūṇ',{ g:'m' }), sugar: w('ਖੰਡ','khaṇḍ',{ g:'f' }), fruit: w('ਫਲ','phal',{ g:'m' }),
+    mango: w('ਅੰਬ','amb',{ g:'m' }), vegetable: w('ਸਬਜ਼ੀ','sabzī',{ g:'f' }), tasty: w('ਸੁਆਦੀ','suādī'),
+    hungry: w('ਭੁੱਖਾ','bhukkhā'), thirsty: w('ਪਿਆਸਾ','piāsā'),
+
+    one: w('ਇੱਕ','ikk'), two: w('ਦੋ','do'), three: w('ਤਿੰਨ','tinn'), four: w('ਚਾਰ','cār'), five: w('ਪੰਜ','pañj'),
+    six: w('ਛੇ','chhe'), seven: w('ਸੱਤ','satt'), eight: w('ਅੱਠ','aṭṭh'), nine: w('ਨੌਂ','naũ'), ten: w('ਦਸ','das'),
+    money: w('ਪੈਸਾ','paisā',{ g:'m' }), price: w('ਕੀਮਤ','kīmat',{ g:'f' }), how_much: w('ਕਿੰਨਾ','kinnā'),
+
+    house: w('ਘਰ','ghar',{ g:'m' }), city: w('ਸ਼ਹਿਰ','śahir',{ g:'m' }), village: w('ਪਿੰਡ','piṇḍ',{ g:'m' }),
+    road: w('ਸੜਕ','saṛak',{ g:'f' }), station: w('ਸਟੇਸ਼ਨ','sṭeśan',{ g:'m' }), market: w('ਬਾਜ਼ਾਰ','bāzār',{ g:'m' }),
+    shop: w('ਦੁਕਾਨ','dukān',{ g:'f' }), school: w('ਸਕੂਲ','sakūl',{ g:'m' }), hospital: w('ਹਸਪਤਾਲ','haspatāl',{ g:'m' }),
+    here: w('ਇੱਥੇ','itthe'), there: w('ਉੱਥੇ','utthe'), where: w('ਕਿੱਥੇ','kitthe'),
+    left: w('ਖੱਬੇ','khabbe'), right_dir: w('ਸੱਜੇ','sajje'), straight: w('ਸਿੱਧਾ','siddhā'),
+
+    today: w('ਅੱਜ','ajj'), tomorrow: w('ਕੱਲ੍ਹ','kallh',{ note:'also means yesterday' }),
+    yesterday: w('ਕੱਲ੍ਹ','kallh',{ note:'also means tomorrow' }), morning: w('ਸਵੇਰ','savēr',{ g:'f' }),
+    evening: w('ਸ਼ਾਮ','śām',{ g:'f' }), night: w('ਰਾਤ','rāt',{ g:'f' }), now: w('ਹੁਣ','huṇ'),
+    day: w('ਦਿਨ','din',{ g:'m' }), time: w('ਸਮਾਂ','samā̃',{ g:'m' }), week: w('ਹਫ਼ਤਾ','haftā',{ g:'m' }),
+
+    to_go: w('ਜਾਣਾ','jāṇā'), to_come: w('ਆਉਣਾ','āuṇā'), to_eat: w('ਖਾਣਾ','khāṇā'), to_drink: w('ਪੀਣਾ','pīṇā'),
+    to_do: w('ਕਰਨਾ','karnā'), to_see: w('ਵੇਖਣਾ','vekhṇā'), to_speak: w('ਬੋਲਣਾ','bolṇā'), to_know: w('ਜਾਣਨਾ','jāṇnā'),
+    to_want: w('ਚਾਹੁਣਾ','cāhuṇā'), to_give: w('ਦੇਣਾ','deṇā'), to_take: w('ਲੈਣਾ','laiṇā'), to_sleep: w('ਸੌਣਾ','sauṇā'),
+    to_sit: w('ਬੈਠਣਾ','baiṭhṇā'), to_read: w('ਪੜ੍ਹਨਾ','paṛhnā'), to_work: w('ਕੰਮ ਕਰਨਾ','kamm karnā'),
+    to_learn: w('ਸਿੱਖਣਾ','sikkhṇā'),
+
+    good: w('ਚੰਗਾ','caṅgā'), bad: w('ਮਾੜਾ','māṛā'), big: w('ਵੱਡਾ','vaḍḍā'), small: w('ਛੋਟਾ','choṭā'),
+    hot: w('ਗਰਮ','garam'), cold: w('ਠੰਢਾ','ṭhaṇḍhā'), new: w('ਨਵਾਂ','navā̃'), old: w('ਪੁਰਾਣਾ','purāṇā'),
+    beautiful: w('ਸੋਹਣਾ','sohṇā'), what: w('ਕੀ','kī'), who: w('ਕੌਣ','kauṇ'), why: w('ਕਿਉਂ','kiũ'),
+    how: w('ਕਿਵੇਂ','kivẽ'), very: w('ਬਹੁਤ','bahut'), more: w('ਵੱਧ','vaddh'), and: w('ਅਤੇ','ate'),
+    also: w('ਵੀ','vī'), not: w('ਨਹੀਂ','nahī̃'),
+  },
+  sentences: [
+    s('pa-1',['ਇਹ','ਕੀ','ਹੈ'],'ih kī hai',[null,'what',null],'What is this?','greet','ਹੈ is "is". Punjabi grammar tracks Hindi closely; the sounds do not.'),
+    s('pa-2',['ਮੇਰਾ','ਨਾਮ','ਰਾਹੁਲ','ਹੈ'],'merā nām rāhul hai',[null,'name',null,null],'My name is Rahul.','people','ਮੇਰਾ is masculine to match ਨਾਮ.'),
+    s('pa-3',['ਤੁਸੀਂ','ਕਿਵੇਂ','ਹੋ'],'tusī̃ kivẽ ho',['you_formal','how',null],'How are you?','greet','ਤੁਸੀਂ is both plural and polite.'),
+    s('pa-4',['ਮੈਨੂੰ','ਪਾਣੀ','ਚਾਹੀਦਾ','ਹੈ'],'mainū̃ pāṇī cāhīdā hai',['i','water','to_want',null],'I want water.','food','ਮੈਨੂੰ is "to me". ਚਾਹੀਦਾ agrees with ਪਾਣੀ, not with the speaker.'),
+    s('pa-5',['ਮੈਂ','ਬਾਜ਼ਾਰ','ਜਾ','ਰਿਹਾ','ਹਾਂ'],'maĩ bāzār jā rihā hā̃',['i','market','to_go',null,null],'I am going to the market.','places','ਰਿਹਾ ਹਾਂ is the present continuous. A woman says ਜਾ ਰਹੀ ਹਾਂ.'),
+    s('pa-6',['ਚਾਹ','ਬਹੁਤ','ਗਰਮ','ਹੈ'],'cāh bahut garam hai',['tea','very','hot',null],'The tea is very hot.','food','Adjective before noun, verb last.'),
+    s('pa-7',['ਸਟੇਸ਼ਨ','ਕਿੱਥੇ','ਹੈ'],'sṭeśan kitthe hai',['station','where',null],'Where is the station?','places','ਕਿੱਥੇ, ਇੱਥੇ, ਉੱਥੇ: where, here, there. The ਕ / ਇ / ਉ prefixes are a pattern worth memorising.'),
+    s('pa-8',['ਇਸਦੀ','ਕੀਮਤ','ਕਿੰਨੀ','ਹੈ'],'isdī kīmat kinnī hai',[null,'price','how_much',null],'How much does this cost?','numbers','ਕਿੰਨੀ is feminine to agree with ਕੀਮਤ.'),
+    s('pa-9',['ਮੈਨੂੰ','ਪੰਜਾਬੀ','ਨਹੀਂ','ਆਉਂਦੀ'],'mainū̃ pañjābī nahī̃ āundī',['i',null,'not',null],"I don't know Punjabi.",'verbs','A language "comes to" you, and the verb agrees with the feminine ਪੰਜਾਬੀ.'),
+    s('pa-10',['ਉਹ','ਮੇਰਾ','ਦੋਸਤ','ਹੈ'],'uh merā dost hai',['he_she',null,'friend',null],'He is my friend.','people','ਉਹ covers he, she and they. Context and the verb disambiguate.'),
+    s('pa-11',['ਖਾਣਾ','ਬਹੁਤ','ਸੁਆਦੀ','ਹੈ'],'khāṇā bahut suādī hai',['food','very','tasty',null],'The food is very tasty.','food','ਖਾਣਾ is both "food" and "to eat", exactly as in Hindi.'),
+    s('pa-12',['ਮੈਂ','ਕੱਲ੍ਹ','ਆਵਾਂਗਾ'],'maĩ kallh āvāṅgā',['i','tomorrow','to_come'],'I will come tomorrow.','time','ਕੱਲ੍ਹ is yesterday AND tomorrow, the same ambiguity as Hindi कल.'),
+    s('pa-13',['ਤੁਹਾਡਾ','ਘਰ','ਕਿੱਥੇ','ਹੈ'],'tuhāḍā ghar kitthe hai',[null,'house','where',null],'Where is your house?','places','ਤੁਹਾਡਾ is the polite "your".'),
+    s('pa-14',['ਮੈਨੂੰ','ਭੁੱਖ','ਲੱਗੀ','ਹੈ'],'mainū̃ bhukkh laggī hai',['i','hungry',null,null],'I am hungry.','food','Hunger attaches to you, in the dative.'),
+    s('pa-15',['ਕਿਰਪਾ','ਕਰਕੇ','ਹੌਲੀ','ਬੋਲੋ'],'kirpā karke haulī bolo',['please','to_do',null,'to_speak'],'Please speak slowly.','verbs','ਬੋਲੋ matches ਤੁਸੀਂ.'),
+    s('pa-16',['ਫਿਰ','ਮਿਲਾਂਗੇ'],'phir milāṅge',[null,null],'See you again.','greet','Literally "we will meet again".'),
+  ],
+  grammar: [
+    g('greet','Punjabi has tone. This is the whole ballgame.','Alone among the ten languages here, Punjabi uses pitch to distinguish words. The letters written gh, jh, dh, bh do NOT sound breathy as in Hindi: they trigger a low tone on the syllable. ਘੋੜਾ (horse) and ਕੋੜਾ (whip) differ mainly in tone. No transliteration in this app can show you that; you have to hear it.'),
+    g('people','Two scripts, one language','Gurmukhi in Indian Punjab, Shahmukhi (Perso-Arabic) in Pakistani Punjab. This course teaches Gurmukhi. A Lahore speaker will understand every word you say and read none of what you write.'),
+    g('food','Doubled consonants are written and heard','ਸੱਤ (satt, seven) has a real long t, marked by ੱ (addak). Hindi mostly lost this contrast; Punjabi keeps it and it changes meaning.'),
+    g('places','Grammar is close to Hindi','Word order, postpositions, the dative subject, the ergative past: all shared. If you know Hindi, Punjabi grammar is nearly free and the work is entirely in script, tone, and vocabulary.'),
+    g('verbs','ਨੂੰ marks both objects and datives','ਮੈਨੂੰ = ਮੈਂ + ਨੂੰ. The same ending marks the recipient, the definite object, and the subject of wanting.'),
+  ],
+}

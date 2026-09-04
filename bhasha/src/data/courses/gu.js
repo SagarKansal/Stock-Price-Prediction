@@ -1,0 +1,77 @@
+import { w, s, g } from './_helpers.js'
+
+export default {
+  code: 'gu',
+  review: 'draft',
+  lexicon: {
+    hello: w('નમસ્તે','namaste',{ note:'કેમ છો (kem chho) is the everyday opener' }),
+    thanks: w('આભાર','ābhār'), please: w('કૃપા કરીને','kṛpā karīne'), sorry: w('માફ કરો','māf karo'),
+    yes: w('હા','hā'), no: w('ના','nā'), goodbye: w('આવજો','āvjo',{ note:'literally "please come again"' }),
+    welcome: w('સ્વાગત','svāgat'), how_are_you: w('કેમ છો','kem chho'),
+
+    i: w('હું','hũ'), you: w('તું','tũ'), you_formal: w('તમે','tame'), he_she: w('તે','te'),
+    we: w('અમે','ame'), they: w('તેઓ','teo'),
+    man: w('પુરુષ','puruṣ',{ g:'m' }), woman: w('સ્ત્રી','strī',{ g:'f' }), boy: w('છોકરો','chokro',{ g:'m' }),
+    girl: w('છોકરી','chokrī',{ g:'f' }), friend: w('મિત્ર','mitra',{ g:'m' }), mother: w('મા','mā',{ g:'f' }),
+    father: w('પિતા','pitā',{ g:'m' }), brother: w('ભાઈ','bhāī',{ g:'m' }), sister: w('બહેન','bahen',{ g:'f' }),
+    child: w('બાળક','bāḷak',{ g:'n' }), name: w('નામ','nām',{ g:'n' }), teacher: w('શિક્ષક','śikṣak',{ g:'m' }),
+
+    water: w('પાણી','pāṇī',{ g:'n' }), tea: w('ચા','cā',{ g:'f' }), milk: w('દૂધ','dūdh',{ g:'n' }),
+    rice: w('ભાત','bhāt',{ g:'m' }), bread: w('રોટલી','roṭlī',{ g:'f' }), food: w('ખોરાક','khorāk',{ g:'m' }),
+    salt: w('મીઠું','mīṭhũ',{ g:'n' }), sugar: w('ખાંડ','khāṇḍ',{ g:'f' }), fruit: w('ફળ','phaḷ',{ g:'n' }),
+    mango: w('કેરી','kerī',{ g:'f' }), vegetable: w('શાક','śāk',{ g:'n' }), tasty: w('સ્વાદિષ્ટ','svādiṣṭ'),
+    hungry: w('ભૂખ્યો','bhūkhyo'), thirsty: w('તરસ્યો','tarasyo'),
+
+    one: w('એક','ek'), two: w('બે','be'), three: w('ત્રણ','traṇ'), four: w('ચાર','cār'), five: w('પાંચ','pāñc'),
+    six: w('છ','chha'), seven: w('સાત','sāt'), eight: w('આઠ','āṭh'), nine: w('નવ','nav'), ten: w('દસ','das'),
+    money: w('પૈસા','paisā'), price: w('કિંમત','kimmat',{ g:'f' }), how_much: w('કેટલું','keṭlũ'),
+
+    house: w('ઘર','ghar',{ g:'n' }), city: w('શહેર','śaher',{ g:'n' }), village: w('ગામ','gām',{ g:'n' }),
+    road: w('રસ્તો','rasto',{ g:'m' }), station: w('સ્ટેશન','sṭeśan',{ g:'n' }), market: w('બજાર','bajār',{ g:'n' }),
+    shop: w('દુકાન','dukān',{ g:'f' }), school: w('શાળા','śāḷā',{ g:'f' }), hospital: w('હોસ્પિટલ','hospiṭal'),
+    here: w('અહીં','ahī̃'), there: w('ત્યાં','tyā̃'), where: w('ક્યાં','kyā̃'),
+    left: w('ડાબે','ḍābe'), right_dir: w('જમણે','jamṇe'), straight: w('સીધું','sīdhũ'),
+
+    today: w('આજે','āje'), tomorrow: w('કાલે','kāle'), yesterday: w('ગઈ કાલે','gaī kāle'),
+    morning: w('સવાર','savār',{ g:'f' }), evening: w('સાંજ','sāñj',{ g:'f' }), night: w('રાત','rāt',{ g:'f' }),
+    now: w('હવે','have'), day: w('દિવસ','divas',{ g:'m' }), time: w('સમય','samay',{ g:'m' }),
+    week: w('અઠવાડિયું','aṭhavāḍiyũ',{ g:'n' }),
+
+    to_go: w('જવું','javũ'), to_come: w('આવવું','āvvũ'), to_eat: w('ખાવું','khāvũ'), to_drink: w('પીવું','pīvũ'),
+    to_do: w('કરવું','karvũ'), to_see: w('જોવું','jovũ'), to_speak: w('બોલવું','bolvũ'), to_know: w('જાણવું','jāṇvũ'),
+    to_want: w('જોઈએ','joīe'), to_give: w('આપવું','āpvũ'), to_take: w('લેવું','levũ'), to_sleep: w('સૂવું','sūvũ'),
+    to_sit: w('બેસવું','besvũ'), to_read: w('વાંચવું','vāñcvũ'), to_work: w('કામ કરવું','kām karvũ'),
+    to_learn: w('શીખવું','śīkhvũ'),
+
+    good: w('સારું','sārũ'), bad: w('ખરાબ','kharāb'), big: w('મોટું','moṭũ'), small: w('નાનું','nānũ'),
+    hot: w('ગરમ','garam'), cold: w('ઠંડું','ṭhaṇḍũ'), new: w('નવું','navũ'), old: w('જૂનું','jūnũ'),
+    beautiful: w('સુંદર','sundar'), what: w('શું','śũ'), who: w('કોણ','koṇ'), why: w('કેમ','kem'),
+    how: w('કેવી રીતે','kevī rīte'), very: w('ખૂબ','khūb'), more: w('વધુ','vadhu'), and: w('અને','ane'),
+    also: w('પણ','paṇ'), not: w('નથી','nathī'),
+  },
+  sentences: [
+    s('gu-1',['આ','શું','છે'],'ā śũ chhe',[null,'what',null],'What is this?','greet','છે is "is". Gujarati keeps the copula, unlike Bengali.'),
+    s('gu-2',['મારું','નામ','રાહુલ','છે'],'mārũ nām rāhul chhe',[null,'name',null,null],'My name is Rahul.','people','મારું is neuter to agree with નામ. Gujarati has three genders.'),
+    s('gu-3',['તમે','કેમ','છો'],'tame kem chho',['you_formal','why',null],'How are you?','greet','કેમ literally means "why", but કેમ છો is the fixed greeting. Do not translate it word by word.'),
+    s('gu-4',['મને','પાણી','જોઈએ','છે'],'mane pāṇī joīe chhe',['i','water','to_want',null],'I want water.','food','મને is "to me". જોઈએ is impersonal, exactly like Hindi चाहिए.'),
+    s('gu-5',['હું','બજારમાં','જાઉં','છું'],'hũ bajārmā̃ jāũ chhũ',['i','market','to_go',null],'I am going to the market.','places','બજારમાં = બજાર + માં (in). Gujarati fuses the postposition onto the noun.'),
+    s('gu-6',['ચા','ખૂબ','ગરમ','છે'],'cā khūb garam chhe',['tea','very','hot',null],'The tea is very hot.','food','Adjective before noun, verb last.'),
+    s('gu-7',['સ્ટેશન','ક્યાં','છે'],'sṭeśan kyā̃ chhe',['station','where',null],'Where is the station?','places','Question word right before the verb.'),
+    s('gu-8',['આની','કિંમત','કેટલી','છે'],'ānī kimmat keṭlī chhe',[null,'price','how_much',null],'How much does this cost?','numbers','કેટલી is feminine to agree with કિંમત. The question word itself inflects.'),
+    s('gu-9',['મને','ગુજરાતી','નથી','આવડતું'],'mane gujarātī nathī āvaḍtũ',['i',null,'not',null],"I don't know Gujarati.",'verbs','આવડવું is specifically "to know how to". It takes the dative subject મને.'),
+    s('gu-10',['તે','મારો','મિત્ર','છે'],'te māro mitra chhe',['he_she',null,'friend',null],'He is my friend.','people','મારો is masculine to match મિત્ર. Compare મારું નામ in sentence 2.'),
+    s('gu-11',['ખોરાક','ખૂબ','સ્વાદિષ્ટ','છે'],'khorāk khūb svādiṣṭ chhe',['food','very','tasty',null],'The food is very tasty.','food','સ્વાદિષ્ટ does not change form, since it ends in a consonant.'),
+    s('gu-12',['હું','કાલે','આવીશ'],'hũ kāle āvīś',['i','tomorrow','to_come'],'I will come tomorrow.','time','આવીશ is the first-person future.'),
+    s('gu-13',['તમારું','ઘર','ક્યાં','છે'],'tamārũ ghar kyā̃ chhe',[null,'house','where',null],'Where is your house?','places','તમારું is neuter, matching ઘર.'),
+    s('gu-14',['મને','ભૂખ','લાગી','છે'],'mane bhūkh lāgī chhe',['i','hungry',null,null],'I am hungry.','food','Hunger "attaches" to you, the same construction as Hindi and Marathi.'),
+    s('gu-15',['કૃપા','કરીને','ધીમે','બોલો'],'kṛpā karīne dhīme bolo',['please','to_do',null,'to_speak'],'Please speak slowly.','verbs','બોલો matches તમે.'),
+    s('gu-16',['ફરી','મળીશું'],'pharī maḷīśũ',[null,null],'See you again.','greet','Literally "we will meet again".'),
+  ],
+  grammar: [
+    g('greet','Devanagari without the bar','Gujarati letters are Devanagari shapes with the top line removed. If you read Hindi, you can decode Gujarati in about an hour. The vocabulary overlap is high but not total.'),
+    g('people','Three genders and they show','Masculine -ો, feminine -ી, neuter -ું. Possessives and adjectives all take the ending: મારો મિત્ર, મારી બહેન, મારું ઘર. This ending pattern is the fastest thing to drill.'),
+    g('food','Postpositions fuse to the noun','Hindi writes बाज़ार में as two words; Gujarati writes બજારમાં as one. Same grammar, different spacing convention.'),
+    g('places','કેમ છો is idiom, not grammar','Word-by-word it reads "why are you". Some of the highest-frequency phrases in every language resist analysis. Memorise these whole and analyse later.'),
+    g('verbs','Ergative past, like Marathi','In the past tense with a transitive verb, the subject takes -એ and the verb agrees with the object. Expect this to feel backwards for a long while.'),
+  ],
+}

@@ -1,0 +1,78 @@
+import { w, s, g } from './_helpers.js'
+
+export default {
+  code: 'kn',
+  review: 'draft',
+  lexicon: {
+    hello: w('ನಮಸ್ಕಾರ','namaskāra'), thanks: w('ಧನ್ಯವಾದ','dhanyavāda'), please: w('ದಯವಿಟ್ಟು','dayaviṭṭu'),
+    sorry: w('ಕ್ಷಮಿಸಿ','kṣamisi'), yes: w('ಹೌದು','haudu'), no: w('ಇಲ್ಲ','illa'),
+    goodbye: w('ಹೋಗಿ ಬರುತ್ತೇನೆ','hōgi baruttēne',{ note:'literally "I will go and come"' }),
+    welcome: w('ಸ್ವಾಗತ','svāgata'), how_are_you: w('ಹೇಗಿದ್ದೀರಿ','hēgiddīri'),
+
+    i: w('ನಾನು','nānu'), you: w('ನೀನು','nīnu'), you_formal: w('ನೀವು','nīvu'),
+    he_she: w('ಅವನು','avanu',{ note:'he; ಅವಳು avaḷu is she; ಅವರು avaru is the respectful form' }),
+    we: w('ನಾವು','nāvu'), they: w('ಅವರು','avaru'),
+    man: w('ಗಂಡಸು','gaṇḍasu'), woman: w('ಹೆಂಗಸು','heṅgasu'), boy: w('ಹುಡುಗ','huḍuga'), girl: w('ಹುಡುಗಿ','huḍugi'),
+    friend: w('ಸ್ನೇಹಿತ','snēhita'), mother: w('ಅಮ್ಮ','amma'), father: w('ಅಪ್ಪ','appa'),
+    brother: w('ಅಣ್ಣ','aṇṇa',{ note:'elder; ತಮ್ಮ tamma is younger' }),
+    sister: w('ಅಕ್ಕ','akka',{ note:'elder; ತಂಗಿ taṅgi is younger' }),
+    child: w('ಮಗು','magu'), name: w('ಹೆಸರು','hesaru'), teacher: w('ಶಿಕ್ಷಕ','śikṣaka'),
+
+    water: w('ನೀರು','nīru'), tea: w('ಚಹಾ','cahā'), milk: w('ಹಾಲು','hālu'), rice: w('ಅನ್ನ','anna'),
+    bread: w('ರೊಟ್ಟಿ','roṭṭi'), food: w('ಊಟ','ūṭa'), salt: w('ಉಪ್ಪು','uppu'), sugar: w('ಸಕ್ಕರೆ','sakkare'),
+    fruit: w('ಹಣ್ಣು','haṇṇu'), mango: w('ಮಾವಿನಹಣ್ಣು','māvinahaṇṇu'), vegetable: w('ತರಕಾರಿ','tarakāri'),
+    tasty: w('ರುಚಿಕರ','rucikara'), hungry: w('ಹಸಿವು','hasivu'), thirsty: w('ಬಾಯಾರಿಕೆ','bāyārike'),
+
+    one: w('ಒಂದು','ondu'), two: w('ಎರಡು','eraḍu'), three: w('ಮೂರು','mūru'), four: w('ನಾಲ್ಕು','nālku'),
+    five: w('ಐದು','aidu'), six: w('ಆರು','āru'), seven: w('ಏಳು','ēḷu'), eight: w('ಎಂಟು','eṇṭu'),
+    nine: w('ಒಂಬತ್ತು','ombattu'), ten: w('ಹತ್ತು','hattu'),
+    money: w('ಹಣ','haṇa'), price: w('ಬೆಲೆ','bele'), how_much: w('ಎಷ್ಟು','eṣṭu'),
+
+    house: w('ಮನೆ','mane'), city: w('ನಗರ','nagara'), village: w('ಹಳ್ಳಿ','haḷḷi'), road: w('ರಸ್ತೆ','raste'),
+    station: w('ನಿಲ್ದಾಣ','nildāṇa'), market: w('ಮಾರುಕಟ್ಟೆ','mārukaṭṭe'), shop: w('ಅಂಗಡಿ','aṅgaḍi'),
+    school: w('ಶಾಲೆ','śāle'), hospital: w('ಆಸ್ಪತ್ರೆ','āspatre'),
+    here: w('ಇಲ್ಲಿ','illi'), there: w('ಅಲ್ಲಿ','alli'), where: w('ಎಲ್ಲಿ','elli'),
+    left: w('ಎಡ','eḍa'), right_dir: w('ಬಲ','bala'), straight: w('ನೇರವಾಗಿ','nēravāgi'),
+
+    today: w('ಇಂದು','indu'), tomorrow: w('ನಾಳೆ','nāḷe'), yesterday: w('ನಿನ್ನೆ','ninne'),
+    morning: w('ಬೆಳಿಗ್ಗೆ','beḷigge'), evening: w('ಸಂಜೆ','sañje'), night: w('ರಾತ್ರಿ','rātri'),
+    now: w('ಈಗ','īga'), day: w('ದಿನ','dina'), time: w('ಸಮಯ','samaya'), week: w('ವಾರ','vāra'),
+
+    to_go: w('ಹೋಗು','hōgu'), to_come: w('ಬರು','baru'), to_eat: w('ತಿನ್ನು','tinnu'), to_drink: w('ಕುಡಿ','kuḍi'),
+    to_do: w('ಮಾಡು','māḍu'), to_see: w('ನೋಡು','nōḍu'), to_speak: w('ಮಾತನಾಡು','mātanāḍu'), to_know: w('ತಿಳಿ','tiḷi'),
+    to_want: w('ಬೇಕು','bēku'), to_give: w('ಕೊಡು','koḍu'), to_take: w('ತೆಗೆದುಕೊಳ್ಳು','tegedukoḷḷu'),
+    to_sleep: w('ಮಲಗು','malagu'), to_sit: w('ಕುಳಿತುಕೊ','kuḷituko'), to_read: w('ಓದು','ōdu'),
+    to_work: w('ಕೆಲಸ ಮಾಡು','kelasa māḍu'), to_learn: w('ಕಲಿ','kali'),
+
+    good: w('ಒಳ್ಳೆಯ','oḷḷeya'), bad: w('ಕೆಟ್ಟ','keṭṭa'), big: w('ದೊಡ್ಡ','doḍḍa'), small: w('ಚಿಕ್ಕ','cikka'),
+    hot: w('ಬಿಸಿ','bisi'), cold: w('ತಣ್ಣಗೆ','taṇṇage'), new: w('ಹೊಸ','hosa'), old: w('ಹಳೆಯ','haḷeya'),
+    beautiful: w('ಸುಂದರ','sundara'), what: w('ಏನು','ēnu'), who: w('ಯಾರು','yāru'), why: w('ಏಕೆ','ēke'),
+    how: w('ಹೇಗೆ','hēge'), very: w('ತುಂಬಾ','tumbā'), more: w('ಹೆಚ್ಚು','heccu'), and: w('ಮತ್ತು','mattu'),
+    also: w('ಕೂಡ','kūḍa'), not: w('ಇಲ್ಲ','illa'),
+  },
+  sentences: [
+    s('kn-1',['ಇದು','ಏನು'],'idu ēnu',[null,'what'],'What is this?','greet','ಇದು is "this", ಅದು is "that".'),
+    s('kn-2',['ನನ್ನ','ಹೆಸರು','ರಾಹುಲ್'],'nanna hesaru rāhul',[null,'name',null],'My name is Rahul.','people','ನನ್ನ is "my". No copula in the present tense.'),
+    s('kn-3',['ನೀವು','ಹೇಗಿದ್ದೀರಿ'],'nīvu hēgiddīri',['you_formal','how'],'How are you?','greet','ಹೇಗಿದ್ದೀರಿ packs "how" and "you are" into one word: ಹೇಗೆ + ಇದ್ದೀರಿ.'),
+    s('kn-4',['ನನಗೆ','ನೀರು','ಬೇಕು'],'nanage nīru bēku',['i','water','to_want'],'I want water.','food','ನನಗೆ is "to me". ಬೇಕು does not conjugate.'),
+    s('kn-5',['ನಾನು','ಅಂಗಡಿಗೆ','ಹೋಗುತ್ತಿದ್ದೇನೆ'],'nānu aṅgaḍige hōguttiddēne',['i','shop','to_go'],'I am going to the shop.','places','ಅಂಗಡಿಗೆ = ಅಂಗಡಿ + ಗೆ, the dative "to".'),
+    s('kn-6',['ಚಹಾ','ತುಂಬಾ','ಬಿಸಿಯಾಗಿದೆ'],'cahā tumbā bisiyāgide',['tea','very','hot'],'The tea is very hot.','food','ಬಿಸಿಯಾಗಿದೆ = ಬಿಸಿ (hot) + ಆಗಿದೆ (has become). Kannada says "has become hot".'),
+    s('kn-7',['ನಿಲ್ದಾಣ','ಎಲ್ಲಿದೆ'],'nildāṇa ellide',['station','where'],'Where is the station?','places','ಎಲ್ಲಿದೆ = ಎಲ್ಲಿ + ಇದೆ, "where is-it", fused into one word.'),
+    s('kn-8',['ಇದರ','ಬೆಲೆ','ಎಷ್ಟು'],'idara bele eṣṭu',[null,'price','how_much'],'How much does this cost?','numbers','ಇದರ is the genitive of ಇದು.'),
+    s('kn-9',['ನನಗೆ','ಕನ್ನಡ','ಬರುವುದಿಲ್ಲ'],'nanage kannaḍa baruvudilla',['i',null,'to_come'],"I don't know Kannada.",'verbs','Literally "Kannada does not come to me". ಬರುವುದಿಲ್ಲ is the negative of "to come".'),
+    s('kn-10',['ಅವರು','ನನ್ನ','ಸ್ನೇಹಿತ'],'avaru nanna snēhita',['he_she',null,'friend'],'He is my friend.','people','ಅವರು is grammatically plural but used as a respectful singular.'),
+    s('kn-11',['ಊಟ','ತುಂಬಾ','ರುಚಿಯಾಗಿದೆ'],'ūṭa tumbā ruciyāgide',['food','very','tasty'],'The food is very tasty.','food','ಊಟ specifically means a full meal, usually rice-based.'),
+    s('kn-12',['ನಾನು','ನಾಳೆ','ಬರುತ್ತೇನೆ'],'nānu nāḷe baruttēne',['i','tomorrow','to_come'],'I will come tomorrow.','time','ಬರುತ್ತೇನೆ covers both "I come" and "I will come".'),
+    s('kn-13',['ನಿಮ್ಮ','ಮನೆ','ಎಲ್ಲಿದೆ'],'nimma mane ellide',[null,'house','where'],'Where is your house?','places','ನಿಮ್ಮ is the polite "your", from ನೀವು.'),
+    s('kn-14',['ನನಗೆ','ಹಸಿವಾಗಿದೆ'],'nanage hasivāgide',['i','hungry'],'I am hungry.','food','Literally "hunger has happened to me".'),
+    s('kn-15',['ದಯವಿಟ್ಟು','ನಿಧಾನವಾಗಿ','ಮಾತನಾಡಿ'],'dayaviṭṭu nidhānavāgi mātanāḍi',['please',null,'to_speak'],'Please speak slowly.','verbs','ಮಾತನಾಡಿ is the polite imperative.'),
+    s('kn-16',['ಮತ್ತೆ','ಸಿಗೋಣ'],'matte sigōṇa',[null,null],'See you again.','greet','Literally "let us meet again".'),
+  ],
+  grammar: [
+    g('greet','Words fuse when they meet','ಎಲ್ಲಿ + ಇದೆ becomes ಎಲ್ಲಿದೆ. Kannada merges adjacent words constantly (sandhi), so a written "word" often hides two or three. Learn to split before you learn to parse.'),
+    g('people','ಅವರು is a politeness plural','Using the plural for one respected person is standard, exactly like French vous or German Sie. Using ಅವನು for an elder is a real insult, not a small slip.'),
+    g('food','"Has become" instead of "is"','Kannada often expresses states as completed changes: ಬಿಸಿಯಾಗಿದೆ (has become hot) rather than "is hot". This -ಆಗಿದೆ pattern recurs everywhere.'),
+    g('places','Dative case, one syllable','-ಗೆ marks "to": ಮನೆಗೆ (to the house), ನನಗೆ (to me). One ending covers direction, recipients, and the subject of wanting.'),
+    g('verbs','Kannada and Telugu are close, Kannada and Tamil less so','All three are Dravidian, but Kannada shares more everyday vocabulary with Telugu than with Tamil. If you know one, the transfer is real but uneven.'),
+  ],
+}

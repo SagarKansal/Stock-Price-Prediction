@@ -1,0 +1,75 @@
+import { w, s, g } from './_helpers.js'
+
+export default {
+  code: 'mr',
+  review: 'draft',
+  lexicon: {
+    hello: w('नमस्कार','namaskār'), thanks: w('धन्यवाद','dhanyavād'), please: w('कृपया','kṛpayā'),
+    sorry: w('माफ करा','māph karā'), yes: w('हो','ho'), no: w('नाही','nāhī'),
+    goodbye: w('येतो','yeto',{ note:'literally "I come" - Marathi avoids a hard goodbye' }),
+    welcome: w('स्वागत','svāgat'), how_are_you: w('तुम्ही कसे आहात','tumhī kase āhāt'),
+
+    i: w('मी','mī'), you: w('तू','tū'), you_formal: w('तुम्ही','tumhī'), he_she: w('तो','to',{ note:'ती (tī) for she' }),
+    we: w('आम्ही','āmhī',{ note:'exclusive; आपण āpaṇ includes the listener' }), they: w('ते','te'),
+    man: w('माणूस','māṇūs',{ g:'m' }), woman: w('बाई','bāī',{ g:'f' }), boy: w('मुलगा','mulgā',{ g:'m' }),
+    girl: w('मुलगी','mulgī',{ g:'f' }), friend: w('मित्र','mitra',{ g:'m' }), mother: w('आई','āī',{ g:'f' }),
+    father: w('वडील','vaḍīl',{ g:'m' }), brother: w('भाऊ','bhāū',{ g:'m' }), sister: w('बहीण','bahīṇ',{ g:'f' }),
+    child: w('मूल','mūl',{ g:'n' }), name: w('नाव','nāv',{ g:'n' }), teacher: w('शिक्षक','śikṣak',{ g:'m' }),
+
+    water: w('पाणी','pāṇī',{ g:'n' }), tea: w('चहा','cahā',{ g:'m' }), milk: w('दूध','dūdh',{ g:'n' }),
+    rice: w('भात','bhāt',{ g:'m' }), bread: w('पोळी','poḷī',{ g:'f' }), food: w('जेवण','jevaṇ',{ g:'n' }),
+    salt: w('मीठ','mīṭh',{ g:'n' }), sugar: w('साखर','sākhar',{ g:'f' }), fruit: w('फळ','phaḷ',{ g:'n' }),
+    mango: w('आंबा','āmbā',{ g:'m' }), vegetable: w('भाजी','bhājī',{ g:'f' }), tasty: w('चविष्ट','caviṣṭ'),
+    hungry: w('भुकेला','bhukelā'), thirsty: w('तहानलेला','tahānlelā'),
+
+    one: w('एक','ek'), two: w('दोन','don'), three: w('तीन','tīn'), four: w('चार','cār'), five: w('पाच','pāc'),
+    six: w('सहा','sahā'), seven: w('सात','sāt'), eight: w('आठ','āṭh'), nine: w('नऊ','naū'), ten: w('दहा','dahā'),
+    money: w('पैसा','paisā',{ g:'m' }), price: w('किंमत','kimmat',{ g:'f' }), how_much: w('किती','kitī'),
+
+    house: w('घर','ghar',{ g:'n' }), city: w('शहर','śahar',{ g:'n' }), village: w('गाव','gāv',{ g:'n' }),
+    road: w('रस्ता','rastā',{ g:'m' }), station: w('स्थानक','sthānak',{ g:'n' }), market: w('बाजार','bājār',{ g:'m' }),
+    shop: w('दुकान','dukān',{ g:'n' }), school: w('शाळा','śāḷā',{ g:'f' }), hospital: w('रुग्णालय','rugṇālay',{ g:'n' }),
+    here: w('इथे','ithe'), there: w('तिथे','tithe'), where: w('कुठे','kuṭhe'),
+    left: w('डावीकडे','ḍāvīkaḍe'), right_dir: w('उजवीकडे','ujavīkaḍe'), straight: w('सरळ','saraḷ'),
+
+    today: w('आज','āj'), tomorrow: w('उद्या','udyā'), yesterday: w('काल','kāl'),
+    morning: w('सकाळ','sakāḷ',{ g:'f' }), evening: w('संध्याकाळ','sandhyākāḷ',{ g:'f' }), night: w('रात्र','rātra',{ g:'f' }),
+    now: w('आता','ātā'), day: w('दिवस','divas',{ g:'m' }), time: w('वेळ','veḷ',{ g:'f' }), week: w('आठवडा','āṭhavaḍā',{ g:'m' }),
+
+    to_go: w('जाणे','jāṇe'), to_come: w('येणे','yeṇe'), to_eat: w('खाणे','khāṇe'), to_drink: w('पिणे','piṇe'),
+    to_do: w('करणे','karaṇe'), to_see: w('पाहणे','pāhaṇe'), to_speak: w('बोलणे','bolaṇe'), to_know: w('जाणणे','jāṇaṇe'),
+    to_want: w('हवे असणे','have asaṇe'), to_give: w('देणे','deṇe'), to_take: w('घेणे','gheṇe'), to_sleep: w('झोपणे','jhopaṇe'),
+    to_sit: w('बसणे','basaṇe'), to_read: w('वाचणे','vācaṇe'), to_work: w('काम करणे','kām karaṇe'), to_learn: w('शिकणे','śikaṇe'),
+
+    good: w('चांगला','cāṅglā'), bad: w('वाईट','vāīṭ'), big: w('मोठा','moṭhā'), small: w('लहान','lahān'),
+    hot: w('गरम','garam'), cold: w('थंड','thaṇḍ'), new: w('नवीन','navīn'), old: w('जुना','junā'),
+    beautiful: w('सुंदर','sundar'), what: w('काय','kāy'), who: w('कोण','koṇ'), why: w('का','kā'),
+    how: w('कसे','kase'), very: w('खूप','khūp'), more: w('जास्त','jāst'), and: w('आणि','āṇi'),
+    also: w('सुद्धा','suddhā'), not: w('नाही','nāhī'),
+  },
+  sentences: [
+    s('mr-1',['हे','काय','आहे'],'he kāy āhe',[null,'what',null],'What is this?','greet','आहे is "is". Marathi keeps the copula where Bengali drops it.'),
+    s('mr-2',['माझे','नाव','राहुल','आहे'],'mājhe nāv rāhul āhe',[null,'name',null,null],'My name is Rahul.','people','माझे is neuter to agree with नाव. Marathi has three genders, one more than Hindi.'),
+    s('mr-3',['तुम्ही','कसे','आहात'],'tumhī kase āhāt',['you_formal','how',null],'How are you?','greet','तुम्ही is both the plural and the polite "you", exactly like French vous.'),
+    s('mr-4',['मला','पाणी','हवे','आहे'],'malā pāṇī have āhe',['i','water','to_want',null],'I want water.','food','Wanting takes the dative मला ("to me"), and हवे agrees with the neuter पाणी.'),
+    s('mr-5',['मी','बाजारात','जातो'],'mī bājārāt jāto',['i','market','to_go'],'I go to the market.','places','बाजारात = बाजार + -ात, the locative suffix. Marathi glues case endings onto the noun.'),
+    s('mr-6',['चहा','खूप','गरम','आहे'],'cahā khūp garam āhe',['tea','very','hot',null],'The tea is very hot.','food','Adjective before noun, copula last.'),
+    s('mr-7',['स्थानक','कुठे','आहे'],'sthānak kuṭhe āhe',['station','where',null],'Where is the station?','places','In speech people usually say स्टेशन. स्थानक is the formal Sanskritised word.'),
+    s('mr-8',['याची','किंमत','किती','आहे'],'yācī kimmat kitī āhe',[null,'price','how_much',null],'How much does this cost?','numbers','याची is the genitive of "this", agreeing with the feminine किंमत.'),
+    s('mr-9',['मला','मराठी','येत','नाही'],'malā marāṭhī yet nāhī',['i',null,null,'not'],"I don't know Marathi.",'verbs','Like Hindi, a language "comes to" you rather than being known by you.'),
+    s('mr-10',['तो','माझा','मित्र','आहे'],'to mājhā mitra āhe',['he_she',null,'friend',null],'He is my friend.','people','तो is "he", ती is "she", ते is "it". Marathi keeps them distinct where Hindi merges them.'),
+    s('mr-11',['जेवण','खूप','चविष्ट','आहे'],'jevaṇ khūp caviṣṭ āhe',['food','very','tasty',null],'The food is very tasty.','food','जेवण specifically means a full cooked meal, not a snack.'),
+    s('mr-12',['मी','उद्या','येईन'],'mī udyā yeīn',['i','tomorrow','to_come'],'I will come tomorrow.','time','Unlike Hindi, Marathi uses different words for yesterday (काल) and tomorrow (उद्या).'),
+    s('mr-13',['तुमचे','घर','कुठे','आहे'],'tumce ghar kuṭhe āhe',[null,'house','where',null],'Where is your house?','places','तुमचे is neuter to match घर.'),
+    s('mr-14',['मला','भूक','लागली','आहे'],'malā bhūk lāgalī āhe',['i','hungry',null,null],'I am hungry.','food','Hunger "attaches" to you: the same construction as Hindi, with Marathi endings.'),
+    s('mr-15',['कृपया','हळू','बोला'],'kṛpayā haḷū bolā',['please',null,'to_speak'],'Please speak slowly.','verbs','बोला is the polite imperative matching तुम्ही.'),
+    s('mr-16',['पुन्हा','भेटू'],'punhā bheṭū',[null,null],'See you again.','greet','The everyday sign-off.'),
+  ],
+  grammar: [
+    g('greet','Same script as Hindi, different language','Marathi uses Devanagari, so if you read Hindi you can already read Marathi aloud. The grammar and half the vocabulary are different. Do not assume comprehension from recognition.'),
+    g('people','Three genders, not two','Masculine, feminine AND neuter. मूल (child) and घर (house) are neuter, a category Hindi lost. Adjectives and verbs agree with all three.'),
+    g('people','Two words for "we"','आम्ही excludes the person you are talking to; आपण includes them. Getting this wrong is not a grammar error, it is a social one.'),
+    g('places','Case suffixes, not postpositions','Where Hindi writes घर में as two words, Marathi fuses: घरात. The endings attach directly to the noun, which is why Marathi words get long.'),
+    g('verbs','Ergative past','In the past tense with a transitive verb, the subject takes -ने and the verb agrees with the OBJECT, not the subject. This trips up every learner coming from a European language.'),
+  ],
+}
