@@ -1,0 +1,468 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Farm Shield Challenge</title>
+  <style>
+    :root {
+      --bg: #f5f9ef;
+      --card: #ffffff;
+      --primary: #2f7d32;
+      --primary-dark: #1f5d22;
+      --accent: #f4b400;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --danger: #b91c1c;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: linear-gradient(135deg, #ecfdf3 0%, var(--bg) 50%, #fff8e8 100%);
+      color: var(--text);
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 20px;
+    }
+
+    .app {
+      width: min(900px, 100%);
+      background: var(--card);
+      border-radius: 20px;
+      box-shadow: 0 14px 40px rgba(0, 0, 0, 0.12);
+      overflow: hidden;
+      border: 1px solid #d1d5db;
+    }
+
+    .header {
+      background: linear-gradient(120deg, var(--primary), #4caf50);
+      color: white;
+      padding: 22px;
+    }
+
+    .header h1 {
+      margin: 0;
+      font-size: clamp(1.35rem, 2.5vw, 1.9rem);
+    }
+
+    .header p {
+      margin: 8px 0 0;
+      opacity: 0.95;
+      line-height: 1.45;
+      font-size: 0.98rem;
+    }
+
+    .stats {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 14px;
+    }
+
+    .chip {
+      background: rgba(255, 255, 255, 0.16);
+      border: 1px solid rgba(255, 255, 255, 0.32);
+      border-radius: 999px;
+      padding: 8px 14px;
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+
+    .content {
+      padding: 24px;
+      display: grid;
+      gap: 16px;
+    }
+
+    .howto {
+      border: 1px solid #fde68a;
+      background: #fffbeb;
+      border-radius: 14px;
+      padding: 14px 16px;
+    }
+
+    .howto h2 {
+      margin: 0 0 8px;
+      font-size: 1.05rem;
+      color: #92400e;
+    }
+
+    .howto ol {
+      margin: 0;
+      padding-left: 20px;
+      line-height: 1.55;
+      font-size: 0.94rem;
+    }
+
+    .card {
+      border: 1px solid #e5e7eb;
+      border-radius: 14px;
+      padding: 18px;
+      background: #fff;
+    }
+
+    .card h2 {
+      margin: 0 0 10px;
+      font-size: 1.25rem;
+      color: #14532d;
+    }
+
+    .scenario {
+      font-size: 1.04rem;
+      margin-bottom: 14px;
+      line-height: 1.55;
+    }
+
+    .options {
+      display: grid;
+      gap: 10px;
+    }
+
+    button.option {
+      border: 2px solid #c8e6c9;
+      background: #f0fdf4;
+      color: #14532d;
+      text-align: left;
+      border-radius: 12px;
+      padding: 12px 14px;
+      font-size: 0.98rem;
+      cursor: pointer;
+      transition: all 0.16s ease;
+    }
+
+    button.option:hover {
+      transform: translateY(-1px);
+      border-color: var(--primary);
+    }
+
+    button.option:disabled {
+      cursor: not-allowed;
+      opacity: 0.9;
+      transform: none;
+    }
+
+    .correct {
+      border-color: var(--primary) !important;
+      background: #dcfce7 !important;
+    }
+
+    .wrong {
+      border-color: #ef4444 !important;
+      background: #fee2e2 !important;
+      color: #7f1d1d !important;
+    }
+
+    .feedback {
+      margin-top: 12px;
+      padding: 12px;
+      border-radius: 10px;
+      background: #f8fafc;
+      border: 1px dashed #d1d5db;
+      font-size: 0.95rem;
+      line-height: 1.5;
+    }
+
+    .feedback strong { color: var(--primary-dark); }
+
+    .toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      border: 0;
+      border-radius: 10px;
+      padding: 11px 16px;
+      font-weight: 700;
+      cursor: pointer;
+      font-size: 0.96rem;
+    }
+
+    .next { background: var(--primary); color: white; }
+    .next:hover { background: var(--primary-dark); }
+
+    .restart { background: var(--accent); color: #1f2937; }
+
+    .hidden { display: none; }
+
+    .result-box {
+      text-align: center;
+      padding: 12px;
+    }
+
+    .result-box h3 {
+      margin: 10px 0;
+      font-size: 1.4rem;
+      color: #14532d;
+    }
+
+    .tip-list {
+      text-align: left;
+      margin: 10px auto 0;
+      width: min(620px, 100%);
+      line-height: 1.6;
+    }
+
+    .footer-note {
+      font-size: 0.9rem;
+      color: var(--muted);
+      text-align: center;
+      margin-top: 4px;
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="header">
+      <h1>🌾 Farm Shield Challenge</h1>
+      <p>
+        Play with our field team and protect your crop season! Choose the best farm decisions,
+        earn points, and unlock practical tips about soil care, nutrition, and crop protection.
+      </p>
+      <div class="stats">
+        <div class="chip" id="roundChip">Round: 1 / 6</div>
+        <div class="chip" id="scoreChip">Score: 0</div>
+        <div class="chip" id="trustChip">Village Trust: 50%</div>
+      </div>
+    </section>
+
+    <section class="content">
+
+      <article class="howto">
+        <h2>How to Play</h2>
+        <ol>
+          <li>Read each real-life farm situation aloud with the group.</li>
+          <li>Let farmers vote on one option before selecting it on screen.</li>
+          <li>Earn points for correct decisions and build <strong>Village Trust</strong>.</li>
+          <li>Use the feedback after each round to explain product importance.</li>
+          <li>Complete all 6 rounds and review the final tips together.</li>
+        </ol>
+      </article>
+      <article class="card" id="gameCard">
+        <h2 id="scenarioTitle">Decision Round</h2>
+        <p class="scenario" id="scenarioText"></p>
+        <div class="options" id="options"></div>
+        <div class="feedback hidden" id="feedback"></div>
+      </article>
+
+      <div class="toolbar">
+        <button class="btn next" id="nextBtn" disabled>Next Round ➜</button>
+        <button class="btn restart hidden" id="restartBtn">Play Again ↺</button>
+      </div>
+
+      <p class="footer-note">Designed for quick village meetings (5–7 minutes) and group participation.</p>
+    </section>
+  </main>
+
+  <script>
+    const rounds = [
+      {
+        title: "Round 1: Soil Preparation",
+        scenario: "Before sowing, your field has low organic matter and hard topsoil. What should you do first?",
+        options: [
+          "Add balanced organic compost + recommended starter nutrient dose",
+          "Use only extra water to soften soil",
+          "Skip preparation and sow immediately"
+        ],
+        correct: 0,
+        points: 20,
+        trust: 8,
+        fact: "Healthy soil at sowing improves root growth and helps products work better throughout the season."
+      },
+      {
+        title: "Round 2: Seedling Stage",
+        scenario: "Young plants are pale and growing slowly. Which action is most effective?",
+        options: [
+          "Apply a stage-specific nutrition spray as advised",
+          "Double the pesticide dose to force growth",
+          "Wait 3 weeks without any intervention"
+        ],
+        correct: 0,
+        points: 15,
+        trust: 7,
+        fact: "Right nutrition at the right stage supports stronger growth and better stress tolerance."
+      },
+      {
+        title: "Round 3: Pest Alert",
+        scenario: "You spot early signs of pest attack in one corner of the farm. What is the best first step?",
+        options: [
+          "Scout affected area and apply targeted crop protection at recommended dose",
+          "Spray random chemicals over whole village fields",
+          "Ignore it; pests disappear on their own"
+        ],
+        correct: 0,
+        points: 20,
+        trust: 10,
+        fact: "Early, precise protection prevents spread and reduces unnecessary input costs."
+      },
+      {
+        title: "Round 4: Water Management",
+        scenario: "Rainfall is uncertain this week. How do you protect yield potential?",
+        options: [
+          "Follow moisture-based irrigation and use water-efficient schedule",
+          "Flood the field daily as a precaution",
+          "Stop watering for 10 days completely"
+        ],
+        correct: 0,
+        points: 15,
+        trust: 6,
+        fact: "Smart irrigation keeps roots active and helps nutrition products perform consistently."
+      },
+      {
+        title: "Round 5: Product Selection",
+        scenario: "A dealer suggests a very cheap unverified input. Your staff recommends a tested product package. You should...",
+        options: [
+          "Choose tested, field-verified products with guidance",
+          "Buy the cheapest option with no label checks",
+          "Mix both blindly in one tank"
+        ],
+        correct: 0,
+        points: 15,
+        trust: 9,
+        fact: "Trusted products with clear guidelines improve safety, consistency, and return on investment."
+      },
+      {
+        title: "Round 6: Harvest Planning",
+        scenario: "Crop looks healthy and harvest is near. What final step gives maximum outcome?",
+        options: [
+          "Follow final advisory for maturity timing and quality protection",
+          "Harvest immediately without checking maturity",
+          "Delay harvest until random market rumor"
+        ],
+        correct: 0,
+        points: 15,
+        trust: 10,
+        fact: "Right harvest timing protects quality and ensures better market value for your hard work."
+      }
+    ];
+
+    let index = 0;
+    let score = 0;
+    let trust = 50;
+    let answered = false;
+
+    const roundChip = document.getElementById('roundChip');
+    const scoreChip = document.getElementById('scoreChip');
+    const trustChip = document.getElementById('trustChip');
+    const scenarioTitle = document.getElementById('scenarioTitle');
+    const scenarioText = document.getElementById('scenarioText');
+    const optionsBox = document.getElementById('options');
+    const feedback = document.getElementById('feedback');
+    const nextBtn = document.getElementById('nextBtn');
+    const restartBtn = document.getElementById('restartBtn');
+    const gameCard = document.getElementById('gameCard');
+
+    function updateStats() {
+      roundChip.textContent = `Round: ${Math.min(index + 1, rounds.length)} / ${rounds.length}`;
+      scoreChip.textContent = `Score: ${score}`;
+      trustChip.textContent = `Village Trust: ${Math.max(0, Math.min(100, trust))}%`;
+    }
+
+    function renderRound() {
+      const data = rounds[index];
+      answered = false;
+      nextBtn.disabled = true;
+      feedback.classList.add('hidden');
+      feedback.innerHTML = '';
+
+      scenarioTitle.textContent = data.title;
+      scenarioText.textContent = data.scenario;
+      optionsBox.innerHTML = '';
+
+      data.options.forEach((optionText, i) => {
+        const btn = document.createElement('button');
+        btn.className = 'option';
+        btn.textContent = optionText;
+        btn.addEventListener('click', () => handleChoice(i, btn));
+        optionsBox.appendChild(btn);
+      });
+
+      updateStats();
+    }
+
+    function handleChoice(choiceIndex, clickedBtn) {
+      if (answered) return;
+      answered = true;
+
+      const data = rounds[index];
+      const buttons = Array.from(document.querySelectorAll('.option'));
+
+      buttons.forEach((button, i) => {
+        button.disabled = true;
+        if (i === data.correct) button.classList.add('correct');
+      });
+
+      if (choiceIndex === data.correct) {
+        score += data.points;
+        trust += data.trust;
+        clickedBtn.classList.add('correct');
+        feedback.innerHTML = `✅ <strong>Great decision!</strong> +${data.points} points. ${data.fact}`;
+      } else {
+        trust -= 8;
+        clickedBtn.classList.add('wrong');
+        feedback.innerHTML = `⚠️ <strong>Good try.</strong> Better choice highlighted above. ${data.fact}`;
+      }
+
+      feedback.classList.remove('hidden');
+      nextBtn.disabled = false;
+      updateStats();
+    }
+
+    function showResult() {
+      roundChip.textContent = `Round: ${rounds.length} / ${rounds.length}`;
+      const level = score >= 85 ? "Master Crop Guardian" : score >= 60 ? "Smart Farm Protector" : "Rising Farm Champion";
+
+      gameCard.innerHTML = `
+        <div class="result-box">
+          <h2>🎉 Village Session Complete!</h2>
+          <h3>${level}</h3>
+          <p><strong>Your Final Score:</strong> ${score} / 100</p>
+          <p><strong>Village Trust Built:</strong> ${Math.max(0, Math.min(100, trust))}%</p>
+          <ul class="tip-list">
+            <li>✅ Use stage-wise solutions, not one-time random treatments.</li>
+            <li>✅ Follow recommended dosage and timing for best crop response.</li>
+            <li>✅ Combine nutrition, protection, and water management for stable yield.</li>
+            <li>✅ Stay connected with trained staff for local crop advisories.</li>
+          </ul>
+        </div>
+      `;
+
+      nextBtn.classList.add('hidden');
+      restartBtn.classList.remove('hidden');
+    }
+
+    nextBtn.addEventListener('click', () => {
+      index += 1;
+      if (index < rounds.length) {
+        renderRound();
+      } else {
+        showResult();
+      }
+    });
+
+    restartBtn.addEventListener('click', () => {
+      index = 0;
+      score = 0;
+      trust = 50;
+      nextBtn.classList.remove('hidden');
+      restartBtn.classList.add('hidden');
+      gameCard.innerHTML = `
+        <h2 id="scenarioTitle"></h2>
+        <p class="scenario" id="scenarioText"></p>
+        <div class="options" id="options"></div>
+        <div class="feedback hidden" id="feedback"></div>
+      `;
+
+      window.location.reload();
+    });
+
+    renderRound();
+  </script>
+</body>
+</html>
