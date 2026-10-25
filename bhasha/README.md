@@ -47,6 +47,25 @@ Two things fall out of this that are worth naming:
    authored (English, as the pivot), and the app labels it when it is showing
    you the pivot rather than your language.
 
+## Going deep on one language: the Marathi ladder
+
+Breadth and depth want different content structures. The concept hub gives you
+190 course pairs but every pair is the same flat set of eight topics, which is
+fine for a first hundred words and useless for getting good.
+
+So Marathi has a second, levelled track: **Pre-A1 to C1 in six levels**, from
+what a two-year-old actually says (आई, पाणी, नको, दे) up to idiom, proverb and
+register. Each level names the one thing that gates progress out of it, because
+for Marathi those are specific: three-gender agreement at A1, the oblique stem
+at A2, and at B1 the ergative past, where the verb agrees with the object
+rather than the subject and which nearly every non-native speaker gets
+permanently wrong.
+
+It adds 382 words, 110 sentences, 29 grammar lessons, 450 verb forms, seven
+generated grammar-drill types and a placement test. See **[MARATHI.md](MARATHI.md)**.
+The topic course still works for all ten languages; the ladder is an extra
+track, not a replacement.
+
 ## The second idea: the script is not a preface
 
 Duolingo's core mechanic assumes an alphabet. Nine of the ten scripts here are
@@ -68,8 +87,9 @@ letter names, is what makes Nastaliq hard to read.
 npm install
 npm run dev        # dev server
 npm run build      # production build to dist/
-npm test           # play every generated lesson in all 190 pairs and grade it
-npm run validate   # structural checks on all content
+npm test           # both suites below
+npm run test:ladder # play every Marathi level in four source languages
+npm run validate   # structural checks on all content, ladder included
 npm run coverage   # which source languages are fully served
 ```
 
@@ -86,12 +106,15 @@ AND "yesterday"; Spanish "mañana" glosses both "morning" and "tomorrow").
 src/
   data/
     concepts.js         113 concepts, glossed in 10 world languages. The hub.
+    deep/mr/            the Marathi ladder: six levels, plus 450 verb forms
     targets.js          the 10 learnable languages and their metadata
     ui.js               interface chrome per source language
     scripts/            9 writing systems: full vowel, consonant and sign inventories
     courses/            one file per Indian language, keyed by concept id
   engine/
     pairing.js          joins target + source into a course. The load-bearing file.
+    ladder.js           the Marathi level track, gating and placement
+    grammar-drills.js   generates conjugation, ergative, case and agreement drills
     generator.js        derives exercises from content; nobody authors questions
     grader.js           forgiving transliteration matching, strict script matching
     exercise-grading.js grading logic, kept out of JSX so it is testable

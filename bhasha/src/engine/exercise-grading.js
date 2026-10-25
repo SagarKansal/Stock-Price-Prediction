@@ -9,7 +9,20 @@ export function gradeExercise(ex, value) {
     case 'choose_gloss':
     case 'listen':
     case 'script_compose':
-    case 'script_shape': {
+    case 'script_shape':
+    // Grammar drills from the Marathi ladder. All option-based, except
+    // `conjugate` in type mode, which falls through to free-text grading.
+    case 'ergative_agree':
+    case 'gender_agree':
+    case 'case_mark':
+    case 'oblique':
+    case 'transform':
+    case 'cloze': {
+      const picked = ex.options.find((o) => o.id === value)
+      return { correct: Boolean(picked && picked.correct) }
+    }
+    case 'conjugate': {
+      if (ex.mode === 'type') return gradeText(value, ex.answer)
       const picked = ex.options.find((o) => o.id === value)
       return { correct: Boolean(picked && picked.correct) }
     }
@@ -31,5 +44,6 @@ export function gradeExercise(ex, value) {
 export function emptyValue(ex) {
   if (ex.kind === 'wordbank') return []
   if (ex.kind === 'type' || ex.kind === 'transliterate') return ''
+  if (ex.kind === 'conjugate' && ex.mode === 'type') return ''
   return null
 }

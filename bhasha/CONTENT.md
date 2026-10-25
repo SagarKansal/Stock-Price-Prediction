@@ -65,6 +65,26 @@ It also warns about transliterations with no vowel and about tokens that match a
 lexicon word but are aligned to `null`. Known-good exceptions are listed
 explicitly in the validator with a reason, rather than suppressed.
 
+## The Marathi ladder specifically
+
+`src/data/deep/mr/` carries 382 words, 110 sentences and 450 verb forms that
+nobody has checked. Three parts deserve a reviewer's attention before anything
+else:
+
+1. **The verb tables** (`verbs.js`). A wrong form there propagates into every
+   generated conjugation drill, so one error becomes hundreds of wrong
+   questions. The ergative past tables are the highest stakes.
+2. **The L5 idioms and proverbs.** Idiom meanings are easy to get subtly wrong
+   and the literal glosses are my own reconstruction.
+3. **The oblique stems** (`obl` fields). These are the forms dictionaries do not
+   print, which is exactly why they are hard to verify and easy to get wrong.
+
+One thing is deliberately omitted rather than guessed: the drills show **no
+transliteration for oblique stems or case-marked forms**. रस्ता is "rastā" but
+रस्त्यातून is "rastyātūn", not "rastātūn", and the romanised oblique is not
+stored. Deriving it by concatenation would print a falsehood. Showing nothing
+is the honest option until someone adds the field properly.
+
 ## How to review a language
 
 If you speak one of these languages, the highest-value thing you can do is:

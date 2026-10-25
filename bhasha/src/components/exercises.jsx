@@ -34,6 +34,157 @@ export function correctAnswerOf(ex, script) {
       return <span className="latn" style={{ fontSize: '1.1em' }}>{ex.answer.latn}</span>
     case 'wordbank':
       return <Word text={ex.answer.join(' ')} latn={ex.latn} script={script} />
+    case 'conjugate':
+    case 'ergative_agree':
+    case 'gender_agree':
+    case 'case_mark':
+    case 'oblique':
+    case 'transform':
+    case 'cloze':
+      return <Word text={ex.answer.target} latn={ex.answer.latn} script={script} />
+    // ---------------- Marathi ladder grammar drills ----------------
+
+    case 'conjugate': {
+      const frame = (
+        <div className="drillframe">
+          <span className="slotchip"><TargetText text={ex.slot.pron} script={script} /></span>
+          <span className="op">+</span>
+          <span className="slotchip"><TargetText text={ex.verb.inf} script={script} /><span className="latn"> {ex.verb.latn}</span></span>
+          <span className="op">&rarr;</span>
+          <span className="slotchip open">?</span>
+        </div>
+      )
+      return (
+        <div>
+          <div className="qprompt">{ex.tenseLabel || 'Conjugate'} &middot; {ex.slot.en}</div>
+          {frame}
+          <div className="faint" style={{ marginBottom: 14 }}>
+            {ex.verb.en} &middot; {ex.tenseEn || ex.tenseId}
+          </div>
+          {ex.mode === 'type' ? (
+            <input
+              className="field" autoFocus autoCapitalize="off" autoCorrect="off" spellCheck={false}
+              placeholder={t.typeHere} value={value || ''} disabled={checked}
+              onChange={(e) => setValue(e.target.value)}
+            />
+          ) : (
+            <Options {...{ ex, value, setValue, checked, script }} />
+          )}
+        </div>
+      )
+    }
+
+    case 'ergative_agree':
+      return (
+        <div>
+          <div className="qprompt">Past tense &middot; which form?</div>
+          <div className="drillframe">
+            <span className="slotchip"><TargetText text={ex.subject.mr} script={script} /></span>
+            <span className="slotchip hot">
+              <TargetText text={ex.object.mr} script={script} />
+              {ex.object.latn ? <span className="latn"> {ex.object.latn}</span> : null}
+            </span>
+            <span className="slotchip open">?</span>
+          </div>
+          <div className="faint" style={{ marginBottom: 14 }}>
+            {ex.subject.en} &middot; {ex.object.en} &middot; {ex.verb.en}
+            <br />The highlighted word is the object. That is what decides the ending.
+          </div>
+          <Options {...{ ex, value, setValue, checked, script }} />
+        </div>
+      )
+
+    case 'gender_agree':
+      return (
+        <div>
+          <div className="qprompt">Which form of &ldquo;{ex.adjEn}&rdquo;?</div>
+          <div className="drillframe">
+            <span className="slotchip open">?</span>
+            <span className="slotchip hot">
+              <TargetText text={ex.noun.mr} script={script} />
+              <span className="latn"> {ex.noun.latn}</span>
+            </span>
+          </div>
+          <div className="faint" style={{ marginBottom: 14 }}>
+            {ex.noun.en} &middot; gender is hidden until you answer
+          </div>
+          <Options {...{ ex, value, setValue, checked, script }} />
+        </div>
+      )
+
+    case 'case_mark':
+      return (
+        <div>
+          <div className="qprompt">Form the {ex.target}</div>
+          <div className="drillframe">
+            <span className="slotchip">
+              <TargetText text={ex.noun.mr} script={script} />
+              <span className="latn"> {ex.noun.latn}</span>
+            </span>
+            <span className="op">&rarr;</span>
+            <span className="slotchip"><TargetText text={ex.noun.obl + '-'} script={script} /></span>
+            <span className="op">+</span>
+            <span className="slotchip open">?</span>
+          </div>
+          <div className="faint" style={{ marginBottom: 14 }}>{ex.caseEn}</div>
+          <Options {...{ ex, value, setValue, checked, script }} />
+        </div>
+      )
+
+    case 'oblique':
+      return (
+        <div>
+          <div className="qprompt">What is the oblique stem?</div>
+          <div className="drillframe">
+            <span className="slotchip">
+              <TargetText text={ex.noun.mr} script={script} size="big" />
+            </span>
+            <span className="op">&rarr;</span>
+            <span className="slotchip open">?</span>
+          </div>
+          <div className="faint" style={{ marginBottom: 14 }}>
+            {ex.noun.en} &middot; the form every case suffix attaches to
+          </div>
+          <Options {...{ ex, value, setValue, checked, script }} />
+        </div>
+      )
+
+    case 'transform':
+      return (
+        <div>
+          <div className="qprompt">Rewrite in the {ex.toTense}</div>
+          <div className="drillframe">
+            <span className="slotchip">
+              <TargetText text={`${ex.from.pron} ${ex.from.form}`} script={script} />
+              <span className="latn"> {ex.from.latn}</span>
+            </span>
+            <span className="op">&rarr;</span>
+            <span className="slotchip open">?</span>
+          </div>
+          <Options {...{ ex, value, setValue, checked, script }} />
+        </div>
+      )
+
+    case 'cloze':
+      return (
+        <div>
+          <div className="qprompt">Fill the gap</div>
+          <div style={{ fontSize: '1.3em', marginBottom: 6, display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+            {ex.tokens.map((tok, i) =>
+              tok === null ? (
+                <span key={i} className="blank">
+                  {checked ? <TargetText text={ex.answer.target} script={script} /> : '\u00A0\u00A0\u00A0'}
+                </span>
+              ) : (
+                <TargetText key={i} text={tok} script={script} />
+              ),
+            )}
+          </div>
+          <div className="faint" style={{ marginBottom: 14 }}>{ex.prompt}</div>
+          <Options {...{ ex, value, setValue, checked, script }} />
+        </div>
+      )
+
     default:
       return null
   }
@@ -265,6 +416,149 @@ export function ExerciseView({ ex, value, setValue, checked, script, glossScript
               )
             })}
           </div>
+        </div>
+      )
+
+    // ---------------- Marathi ladder grammar drills ----------------
+
+    case 'conjugate': {
+      const frame = (
+        <div className="drillframe">
+          <span className="slotchip"><TargetText text={ex.slot.pron} script={script} /></span>
+          <span className="op">+</span>
+          <span className="slotchip"><TargetText text={ex.verb.inf} script={script} /><span className="latn"> {ex.verb.latn}</span></span>
+          <span className="op">&rarr;</span>
+          <span className="slotchip open">?</span>
+        </div>
+      )
+      return (
+        <div>
+          <div className="qprompt">{ex.tenseLabel || 'Conjugate'} &middot; {ex.slot.en}</div>
+          {frame}
+          <div className="faint" style={{ marginBottom: 14 }}>
+            {ex.verb.en} &middot; {ex.tenseEn || ex.tenseId}
+          </div>
+          {ex.mode === 'type' ? (
+            <input
+              className="field" autoFocus autoCapitalize="off" autoCorrect="off" spellCheck={false}
+              placeholder={t.typeHere} value={value || ''} disabled={checked}
+              onChange={(e) => setValue(e.target.value)}
+            />
+          ) : (
+            <Options {...{ ex, value, setValue, checked, script }} />
+          )}
+        </div>
+      )
+    }
+
+    case 'ergative_agree':
+      return (
+        <div>
+          <div className="qprompt">Past tense &middot; which form?</div>
+          <div className="drillframe">
+            <span className="slotchip"><TargetText text={ex.subject.mr} script={script} /></span>
+            <span className="slotchip hot">
+              <TargetText text={ex.object.mr} script={script} />
+              {ex.object.latn ? <span className="latn"> {ex.object.latn}</span> : null}
+            </span>
+            <span className="slotchip open">?</span>
+          </div>
+          <div className="faint" style={{ marginBottom: 14 }}>
+            {ex.subject.en} &middot; {ex.object.en} &middot; {ex.verb.en}
+            <br />The highlighted word is the object. That is what decides the ending.
+          </div>
+          <Options {...{ ex, value, setValue, checked, script }} />
+        </div>
+      )
+
+    case 'gender_agree':
+      return (
+        <div>
+          <div className="qprompt">Which form of &ldquo;{ex.adjEn}&rdquo;?</div>
+          <div className="drillframe">
+            <span className="slotchip open">?</span>
+            <span className="slotchip hot">
+              <TargetText text={ex.noun.mr} script={script} />
+              <span className="latn"> {ex.noun.latn}</span>
+            </span>
+          </div>
+          <div className="faint" style={{ marginBottom: 14 }}>
+            {ex.noun.en} &middot; gender is hidden until you answer
+          </div>
+          <Options {...{ ex, value, setValue, checked, script }} />
+        </div>
+      )
+
+    case 'case_mark':
+      return (
+        <div>
+          <div className="qprompt">Form the {ex.target}</div>
+          <div className="drillframe">
+            <span className="slotchip">
+              <TargetText text={ex.noun.mr} script={script} />
+              <span className="latn"> {ex.noun.latn}</span>
+            </span>
+            <span className="op">&rarr;</span>
+            <span className="slotchip"><TargetText text={ex.noun.obl + '-'} script={script} /></span>
+            <span className="op">+</span>
+            <span className="slotchip open">?</span>
+          </div>
+          <div className="faint" style={{ marginBottom: 14 }}>{ex.caseEn}</div>
+          <Options {...{ ex, value, setValue, checked, script }} />
+        </div>
+      )
+
+    case 'oblique':
+      return (
+        <div>
+          <div className="qprompt">What is the oblique stem?</div>
+          <div className="drillframe">
+            <span className="slotchip">
+              <TargetText text={ex.noun.mr} script={script} size="big" />
+            </span>
+            <span className="op">&rarr;</span>
+            <span className="slotchip open">?</span>
+          </div>
+          <div className="faint" style={{ marginBottom: 14 }}>
+            {ex.noun.en} &middot; the form every case suffix attaches to
+          </div>
+          <Options {...{ ex, value, setValue, checked, script }} />
+        </div>
+      )
+
+    case 'transform':
+      return (
+        <div>
+          <div className="qprompt">Rewrite in the {ex.toTense}</div>
+          <div className="drillframe">
+            <span className="slotchip">
+              <TargetText text={`${ex.from.pron} ${ex.from.form}`} script={script} />
+              <span className="latn"> {ex.from.latn}</span>
+            </span>
+            <span className="op">&rarr;</span>
+            <span className="slotchip open">?</span>
+          </div>
+          <Options {...{ ex, value, setValue, checked, script }} />
+        </div>
+      )
+
+    case 'cloze':
+      return (
+        <div>
+          <div className="qprompt">Fill the gap</div>
+          <div style={{ fontSize: '1.3em', marginBottom: 6, display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+            {ex.tokens.map((tok, i) =>
+              tok === null ? (
+                <span key={i} className="blank">
+                  {checked ? <TargetText text={ex.answer.target} script={script} /> : '\u00A0\u00A0\u00A0'}
+                </span>
+              ) : (
+                <TargetText key={i} text={tok} script={script} />
+              ),
+            )}
+          </div>
+          <div className="faint" style={{ marginBottom: 14 }}>{ex.prompt}</div>
+          <Options {...{ ex, value, setValue, checked, script }} />
         </div>
       )
 

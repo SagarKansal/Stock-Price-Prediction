@@ -11,6 +11,8 @@ import { COURSES } from '../src/data/courses/index.js'
 import { TARGETS, TARGET_BY_CODE } from '../src/data/targets.js'
 import { SCRIPTS } from '../src/data/scripts/index.js'
 import { UI } from '../src/data/ui.js'
+import { LEVELS as MR_LEVELS, PACKS as MR_PACKS, VERBS as MR_VERBS } from '../src/data/deep/mr/index.js'
+import { PRONOUN_SLOTS, FUTURE_SLOTS, OBJECT_SLOTS, VERB_OBJECTS } from '../src/data/deep/mr/verbs.js'
 
 // Tokens that look like a lexicon entry but are doing something else in that
 // sentence. Listing them here documents the ambiguity instead of hiding it.
@@ -143,6 +145,116 @@ for (const [code, obj] of Object.entries(UI)) {
   for (const k of Object.keys(obj)) if (!uiKeys.includes(k)) fail(`ui ${code}`, `unknown key "${k}"`)
 }
 
+// ---- the Marathi deep ladder ----
+{
+  const DEV = /[\u0900-\u097F]/
+  const seenIds = new Set()
+  const levelIds = new Set(MR_LEVELS.map((l) => l.id))
+
+  for (const l of MR_LEVELS) {
+    if (!MR_PACKS[l.id]) fail('mr ladder', `level "${l.id}" has no content pack`)
+    for (const k of ['cefr', 'mr', 'en', 'blurb', 'gate', 'unlocks']) {
+      if (!l[k]) fail('mr ladder', `level "${l.id}" is missing ${k}`)
+    }
+  }
+  for (const vid of Object.keys(VERB_OBJECTS)) {
+    if (!MR_VERBS.some((v) => v.id === vid && v.type === 'transitive')) {
+      fail('mr verbs', `VERB_OBJECTS has an entry for "${vid}", which is not a transitive verb`)
+    }
+  }
+  for (const id of Object.keys(MR_PACKS)) {
+    if (!levelIds.has(id)) fail('mr ladder', `pack "${id}" has no entry in levels.js`)
+  }
+
+  for (const [lid, pack] of Object.entries(MR_PACKS)) {
+    const w = `mr/${lid}`
+    const vocabMr = new Set()
+
+    for (const x of pack.vocab) {
+      if (seenIds.has(x.id)) fail(w, `duplicate vocab id "${x.id}" across the ladder`)
+      seenIds.add(x.id)
+      vocabMr.add(x.mr)
+
+      if (!x.mr || !x.latn || !x.en) fail(w, `"${x.id}" missing mr, latn or en`)
+      if (!DEV.test(x.mr)) fail(w, `"${x.id}" = "${x.mr}" contains no Devanagari`)
+      if (DEV.test(x.latn)) fail(w, `"${x.id}" transliteration "${x.latn}" contains Devanagari`)
+      if (x.g && !['m', 'f', 'n'].includes(x.g)) fail(w, `"${x.id}" has gender "${x.g}"`)
+
+      // The adjective flag drives generated inflection, so a wrong one
+      // produces a non-word in a drill. Guard it hard.
+      if (x.adj) {
+        if (!x.mr.endsWith('\u093E')) fail(w, `"${x.id}" is marked adj but does not end in -\u0906`)
+        if (x.g) fail(w, `"${x.id}" is marked adj but also has a gender`)
+        if (x.pos) fail(w, `"${x.id}" is marked adj but also has a part of speech`)
+      }
+      if (x.obl) {
+        if (!DEV.test(x.obl)) fail(w, `"${x.id}" oblique "${x.obl}" is not Devanagari`)
+        if (!x.g) warn(w, `"${x.id}" has an oblique stem but no gender`)
+      }
+    }
+
+    for (const s of pack.sentences) {
+      const sw = `${w}/${s.id}`
+      if (!s.id.startsWith(`mr-${lid}-`)) fail(sw, `id should start with "mr-${lid}-"`)
+      if (s.tokens.join(' ') !== s.mr) fail(sw, 'tokens do not reconstruct the sentence')
+      if (!s.en) fail(sw, 'missing English gloss')
+      if (!s.latn) fail(sw, 'missing transliteration')
+      if (!DEV.test(s.mr)) fail(sw, 'sentence contains no Devanagari')
+      if (s.tokens.some((t) => !t.trim())) fail(sw, 'empty token')
+      if (!Array.isArray(s.skills)) fail(sw, 'skills must be an array')
+    }
+
+    for (const g of pack.grammar) {
+      const gw = `${w}/${g.id}`
+      if (!g.title || !g.body) fail(gw, 'grammar note missing title or body')
+      for (const e of g.examples || []) {
+        if (!e.mr || !e.latn || !e.en) fail(gw, `example "${e.mr || '?'}" missing a field`)
+        if (DEV.test(e.latn)) fail(gw, `example transliteration "${e.latn}" contains Devanagari`)
+      }
+    }
+  }
+
+  // Verb paradigms: a missing slot silently removes a drill question.
+  const subjectKeys = PRONOUN_SLOTS.map((s) => s.key)
+  const objectKeys = OBJECT_SLOTS.map((s) => s.key)
+  for (const v of MR_VERBS) {
+    const w = `mr verbs/${v.id}`
+    if (!['transitive', 'intransitive'].includes(v.type)) fail(w, `unknown type "${v.type}"`)
+    const expect = { present: subjectKeys, future: FUTURE_SLOTS }
+    expect[v.type === 'transitive' ? 'pastErg' : 'past'] = v.type === 'transitive' ? objectKeys : subjectKeys
+    for (const [tense, keys] of Object.entries(expect)) {
+      const tbl = v.forms[tense]
+      if (!tbl) { fail(w, `missing the ${tense} table`); continue }
+      for (const k of keys) {
+        const f = tbl[k]
+        if (!f) { fail(w, `${tense} is missing slot "${k}"`); continue }
+        if (!DEV.test(f.mr)) fail(w, `${tense}.${k} = "${f.mr}" is not Devanagari`)
+        if (!f.latn || DEV.test(f.latn)) fail(w, `${tense}.${k} has a bad transliteration "${f.latn}"`)
+      }
+      for (const k of Object.keys(tbl)) {
+        if (!keys.includes(k)) fail(w, `${tense} has unexpected slot "${k}"`)
+      }
+    }
+    if (v.type === 'intransitive' && v.forms.pastErg) fail(w, 'intransitive verb carries an ergative table')
+    if (v.type === 'transitive' && v.forms.past) fail(w, 'transitive verb carries a subject-agreement past table')
+
+    // Every transitive verb needs a plausible object per agreement slot, or
+    // the ergative drill falls back to generic nouns and generates sentences
+    // like "I sold work".
+    if (v.type === 'transitive') {
+      const objs = VERB_OBJECTS[v.id]
+      if (!objs) { fail(w, 'transitive verb has no VERB_OBJECTS entry'); continue }
+      for (const k of objectKeys) {
+        const o = objs[k]
+        if (!o) { fail(w, `VERB_OBJECTS missing slot "${k}"`); continue }
+        if (!o.mr || !o.latn || !o.en) fail(w, `VERB_OBJECTS.${k} missing a field`)
+        if (!DEV.test(o.mr)) fail(w, `VERB_OBJECTS.${k} = "${o.mr}" is not Devanagari`)
+        if (DEV.test(o.latn)) fail(w, `VERB_OBJECTS.${k} transliteration contains Devanagari`)
+      }
+    }
+  }
+}
+
 // ---- report ----
 const pairs = TARGETS.length * (SOURCE_LANGS.length + TARGETS.length - 1)
 console.log(`concepts        ${CONCEPTS.length}`)
@@ -153,6 +265,11 @@ console.log(`lexical entries ${Object.values(COURSES).reduce((n, p) => n + Objec
 console.log(`sentences       ${Object.values(COURSES).reduce((n, p) => n + p.sentences.length, 0)}`)
 console.log(`grammar notes   ${Object.values(COURSES).reduce((n, p) => n + p.grammar.length, 0)}`)
 console.log(`generated pairs ${pairs}`)
+console.log('')
+console.log(`mr ladder       ${MR_LEVELS.length} levels, ${Object.values(MR_PACKS).reduce((n, p) => n + p.vocab.length, 0)} words, ` +
+  `${Object.values(MR_PACKS).reduce((n, p) => n + p.sentences.length, 0)} sentences, ` +
+  `${Object.values(MR_PACKS).reduce((n, p) => n + p.grammar.length, 0)} grammar lessons`)
+console.log(`mr verb forms   ${MR_VERBS.reduce((n, v) => n + Object.values(v.forms).reduce((m, t) => m + Object.keys(t).length, 0), 0)} across ${MR_VERBS.length} verbs`)
 console.log('')
 
 if (warnings.length) {

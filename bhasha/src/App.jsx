@@ -11,13 +11,30 @@ import CourseMap from './components/CourseMap.jsx'
 import Lesson, { applyResults } from './components/Lesson.jsx'
 import ScriptLab from './components/ScriptLab.jsx'
 import TargetText from './components/TargetText.jsx'
+import Ladder, { GrammarLesson } from './components/Ladder.jsx'
+import Placement, { PlacementResult } from './components/Placement.jsx'
+import { buildLadder, buildLevelLesson, buildPlacementTest } from './engine/ladder.js'
+
+// Marathi is the only language with a levelled deep track so far. The topic
+// course still works for all ten; the ladder is an extra track, not a
+// replacement, so a Tamil speaker learning Marathi keeps their own glosses.
+const HAS_LADDER = new Set(['mr'])
 
 export default function App() {
   const [store, setStore] = useState(load)
-  const [screen, setScreen] = useState(() => (load().settings.target ? 'map' : 'setup'))
+  const [screen, setScreen] = useState(() => {
+    const st = load()
+    if (!st.settings.target) return 'setup'
+    const cur = st.courses[pairKey(st.settings.target, st.settings.source)]
+    const tr = cur ? cur.track : 'ladder'
+    return HAS_LADDER.has(st.settings.target) && tr !== 'topic' ? 'ladder' : 'map'
+  })
   const [lesson, setLesson] = useState(null)
   const [summary, setSummary] = useState(null)
   const [voices, setVoices] = useState(0)
+  const [grammarRef, setGrammarRef] = useState(null)
+  const [placement, setPlacement] = useState(null)
+  const [placementResult, setPlacementResult] = useState(null)
 
   const { source, target } = store.settings
 
@@ -26,6 +43,10 @@ export default function App() {
 
   const course = useMemo(
     () => (target ? buildCourse(target, source) : null),
+    [target, source],
+  )
+  const ladder = useMemo(
+    () => (target && HAS_LADDER.has(target) ? buildLadder(source) : null),
     [target, source],
   )
   const t = strings(source)
@@ -39,14 +60,16 @@ export default function App() {
   const update = useCallback((fn) => {
     setStore((prev) => {
       const key = pairKey(prev.settings.target, prev.settings.source)
-      const cur = prev.courses[key] || { items: {}, xp: 0, streak: 0, lastDay: null, lessons: 0 }
+      const cur = prev.courses[key] || { items: {}, xp: 0, streak: 0, lastDay: null, lessons: 0, track: 'ladder', placedAt: null }
       return { ...prev, courses: { ...prev.courses, [key]: fn(cur) } }
     })
   }, [])
 
   const start = (tgt, src) => {
     setStore((prev) => ({ ...prev, settings: { ...prev.settings, target: tgt, source: src } }))
-    setScreen('map')
+    // A language with a ladder opens on the ladder. The topic course is still
+    // one tap away, but a levelled path is the thing a learner came for.
+    setScreen(HAS_LADDER.has(tgt) ? 'ladder' : 'map')
   }
 
   const startUnit = (unitId) => {
@@ -69,6 +92,32 @@ export default function App() {
     setLesson({ title: t.scriptLab, exercises: buildScriptDrill(course.target.script, 10) })
     setScreen('lesson')
   }
+
+  // ---- ladder ----
+  const track = cstate.track || (ladder ? 'ladder' : 'topic')
+  const setTrack = (v) => update((c) => ({ ...c, track: v }))
+
+  const startLevel = (levelId) => {
+    setLesson({
+      title: levelId,
+      level: levelId,
+      exercises: buildLevelLesson(ladder, levelId, cstate.items, { audio: canSpeak, length: 12 }),
+    })
+    setScreen('lesson')
+  }
+
+  const startPlacement = () => {
+    setPlacement(buildPlacementTest(ladder))
+    setScreen('placement')
+  }
+
+  const finishPlacement = (result) => {
+    update((c) => ({ ...c, placedAt: result.placed }))
+    setPlacementResult(result)
+    setScreen('placement-result')
+  }
+
+  const backScreen = () => (ladder && track === 'ladder' ? 'ladder' : 'map')
 
   const finish = ({ results, right, total }) => {
     update((c) => bumpStreak({
@@ -105,6 +154,14 @@ export default function App() {
 
       {screen === 'map' && course ? (
         <>
+          {ladder ? (
+            <div className="trackswitch" style={{ marginBottom: 14 }}>
+              <button className="on">Topic course</button>
+              <button onClick={() => { setTrack('ladder'); setScreen('ladder') }}>
+                Ladder &middot; Pre-A1 to C1
+              </button>
+            </div>
+          ) : null}
           {!hasChrome(source) ? (
             <div className="notice calm" style={{ marginBottom: 12 }}>
               Interface text is not translated into {sourceName(source)} yet, so it falls back to
@@ -127,6 +184,46 @@ export default function App() {
         </>
       ) : null}
 
+      {screen === 'ladder' && ladder ? (
+        <>
+          <div className="trackswitch" style={{ marginBottom: 14 }}>
+            <button onClick={() => { setTrack('topic'); setScreen('map') }}>Topic course</button>
+            <button className="on">Ladder &middot; Pre-A1 to C1</button>
+          </div>
+          <Ladder
+            ladder={ladder}
+            state={cstate}
+            placedAt={cstate.placedAt}
+            onStart={startLevel}
+            onPlacement={startPlacement}
+            onGrammar={(levelId, grammarId) => { setGrammarRef({ levelId, grammarId }); setScreen('grammar') }}
+          />
+        </>
+      ) : null}
+
+      {screen === 'grammar' && ladder && grammarRef ? (
+        <GrammarLesson
+          ladder={ladder}
+          levelId={grammarRef.levelId}
+          grammarId={grammarRef.grammarId}
+          onBack={() => setScreen('ladder')}
+        />
+      ) : null}
+
+      {screen === 'placement' && placement ? (
+        <Placement
+          ladder={ladder}
+          questions={placement}
+          t={t}
+          onDone={finishPlacement}
+          onCancel={() => setScreen('ladder')}
+        />
+      ) : null}
+
+      {screen === 'placement-result' && placementResult ? (
+        <PlacementResult result={placementResult} onAccept={() => setScreen('ladder')} />
+      ) : null}
+
       {screen === 'lesson' && lesson ? (
         <Lesson
           course={course}
@@ -135,7 +232,7 @@ export default function App() {
           glossScript={glossScript}
           canSpeak={canSpeak}
           onFinish={finish}
-          onExit={() => setScreen('map')}
+          onExit={() => setScreen(backScreen())}
         />
       ) : null}
 
@@ -158,7 +255,7 @@ export default function App() {
           <div className="row" style={{ justifyContent: 'center' }}>
             <TargetText text={course.target.native} script={course.target.script} size="big" />
           </div>
-          <button className="btn primary wide" onClick={() => setScreen('map')}>{t.next}</button>
+          <button className="btn primary wide" onClick={() => setScreen(backScreen())}>{t.next}</button>
         </div>
       ) : null}
     </div>

@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "validate": "node scripts/validate-content.mjs",
     "coverage": "node scripts/coverage-report.mjs",
-    "test": "node scripts/selftest.mjs"
+    "test": "node scripts/selftest.mjs && node scripts/selftest-ladder.mjs",
+    "test:ladder": "node scripts/selftest-ladder.mjs"
   },
   "dependencies": {
     "react": "^18.3.1",

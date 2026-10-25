@@ -31,7 +31,16 @@ export function save(state) {
 export const pairKey = (target, source) => `${target}<-${source}`
 
 export function courseState(state, target, source) {
-  return state.courses[pairKey(target, source)] || { items: {}, xp: 0, streak: 0, lastDay: null, lessons: 0 }
+  return (
+    state.courses[pairKey(target, source)] || {
+      items: {}, xp: 0, streak: 0, lastDay: null, lessons: 0,
+      // Which track a language with a deep ladder opens on. Marathi defaults to
+      // the ladder, because a levelled path is what a learner actually wants
+      // and the flat topic course is the fallback, not the headline.
+      track: 'ladder',
+      placedAt: null,
+    }
+  )
 }
 
 const dayStamp = (ts = Date.now()) => new Date(ts).toISOString().slice(0, 10)
