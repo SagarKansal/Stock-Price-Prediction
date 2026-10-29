@@ -11,7 +11,8 @@
     "validate": "node scripts/validate-content.mjs",
     "coverage": "node scripts/coverage-report.mjs",
     "test": "node scripts/selftest.mjs && node scripts/selftest-ladder.mjs",
-    "test:ladder": "node scripts/selftest-ladder.mjs"
+    "test:ladder": "node scripts/selftest-ladder.mjs",
+    "bundle": "npm run build && node scripts/bundle-single-file.mjs"
   },
   "dependencies": {
     "react": "^18.3.1",
